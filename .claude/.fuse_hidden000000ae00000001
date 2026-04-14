@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find 'D:/ebak/webnovel-writer-master' -name '__pycache__' -type d -exec rm -rf {} +)",
+      "Bash(find 'D:/ebak/webnovel-writer-master' -name '*.pyc' -delete)",
+      "Bash(find 'D:/ebak/webnovel-writer-master' -name '.pytest_cache' -type d -exec rm -rf {} +)",
+      "Bash(npx tsc:*)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(node ./node_modules/typescript/bin/tsc --noEmit)",
+      "Bash(node ./node_modules/next/dist/bin/next build)",
+      "Bash(node --test tests/**/*.test.mjs)",
+      "Bash(python -c ':*)",
+      "Bash(python:*)",
+      "Bash(npx next:*)",
+      "Bash(ls node_modules/.bin/tsc*)",
+      "Bash(find /mnt/hgfs/ebak/webnovel-writer-master -maxdepth 3 -name *plan* -o -name *实施* -o -name *implement*)",
+      "Bash(/mnt/hgfs/ebak/webnovel-writer-master/node_modules/.bin/next --version)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(cp /mnt/hgfs/ebak/webnovel-writer-master/node_modules/.bin/tsc /tmp/tsc-try)",
+      "Read(//tmp/**)",
+      "Bash(npm list:*)",
+      "Bash(npm install:*)",
+      "Bash(~/.nvm/versions/node/v22.22.2/bin/tsc --noEmit --project /mnt/hgfs/ebak/webnovel-writer-master/tsconfig.json)",
+      "Bash(~/.nvm/versions/node/v22.22.2/bin/tsc --noEmit --project tsconfig.json)",
+      "Bash(curl:*)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "Bash(npx playwright:*)",
+      "Bash(~/.nvm/versions/node/v22.22.2/bin/npx playwright:*)",
+      "Bash(~/.nvm/versions/node/v22.22.2/bin/tsc --noEmit)"
+    ]
+  }
+}

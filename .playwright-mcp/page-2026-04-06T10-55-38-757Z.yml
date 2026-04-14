@@ -1,0 +1,125 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - paragraph [ref=e5]: Webnovel Writer
+        - heading "创作台" [level=1] [ref=e6]
+      - navigation [ref=e7]:
+        - link "总览" [ref=e8] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e9]: 总览
+        - link "立项" [ref=e10] [cursor=pointer]:
+          - /url: /ideation
+          - generic [ref=e11]: 立项
+        - link "设定" [ref=e12] [cursor=pointer]:
+          - /url: /library
+          - generic [ref=e13]: 设定
+        - link "大纲" [ref=e14] [cursor=pointer]:
+          - /url: /outline
+          - generic [ref=e15]: 大纲
+        - link "写作" [ref=e16] [cursor=pointer]:
+          - /url: /writing
+          - generic [ref=e17]: 写作
+        - link "审查" [ref=e18] [cursor=pointer]:
+          - /url: /review
+          - generic [ref=e19]: 审查
+        - link "设置" [ref=e20] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=e21]: 设置
+    - main [ref=e22]:
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - paragraph [ref=e25]: 当前工作区
+          - heading "项目首页" [level=2] [ref=e26]
+          - paragraph [ref=e27]: 当前项目概览、关键风险与最近工作入口。
+        - generic [ref=e28]:
+          - strong [ref=e29]: E2E Smoke 1775472850447
+          - generic [ref=e30]: 都市异能 / 第 0 章
+      - generic [ref=e31]:
+        - article [ref=e32]:
+          - paragraph [ref=e33]: 当前卷
+          - heading "第 1 卷" [level=3] [ref=e34]
+          - paragraph [ref=e35]: 从 state.json 同步
+        - article [ref=e36]:
+          - paragraph [ref=e37]: 当前章
+          - heading "第 0 章" [level=3] [ref=e38]
+          - paragraph [ref=e39]: 后续接写作任务书
+        - article [ref=e40]:
+          - paragraph [ref=e41]: 设定文件
+          - heading "8" [level=3] [ref=e42]
+          - paragraph [ref=e43]: 设定资料可持续扩展
+        - article [ref=e44]:
+          - paragraph [ref=e45]: 大纲文件
+          - heading "2" [level=3] [ref=e46]
+          - paragraph [ref=e47]: 总纲、卷纲、节拍表入口
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - generic [ref=e50]:
+            - generic [ref=e51]:
+              - paragraph [ref=e52]: 项目访问
+              - heading "切项目、建项目、看当前盘面" [level=3] [ref=e53]
+              - paragraph [ref=e54]: 把项目切换、创建和当前状态收在一屏内，只保留真正影响下一步的信息。
+            - generic "当前聚焦摘要" [ref=e55]:
+              - generic [ref=e56]:
+                - generic [ref=e57]: 项目标题
+                - strong [ref=e58]: E2E Smoke 1775472850447
+              - generic [ref=e59]:
+                - generic [ref=e60]: 创作阶段
+                - strong [ref=e61]: 持续写作
+              - generic [ref=e62]:
+                - generic [ref=e63]: 进度
+                - strong [ref=e64]: 2 / 120 章 · 0 / 500000 字
+          - generic [ref=e65]:
+            - article [ref=e66]:
+              - paragraph [ref=e67]: 推荐动作
+              - list [ref=e68]:
+                - listitem [ref=e69]: 继续推进第 0 章，先补任务书再扩正文。
+                - listitem [ref=e70]: 写完后去审查页看最新修补建议和风险提示。
+                - listitem [ref=e71]: 按当前节奏继续补卷纲与关键设定，避免后段失速。
+            - article [ref=e72]:
+              - paragraph [ref=e73]: 优先补位
+              - list [ref=e74]:
+                - listitem [ref=e75]: 距离目标章节还差 118 章，需要持续稳定推进。
+                - listitem [ref=e76]: 距离目标字数还差 500000 字，后续要守住更新节奏。
+                - listitem [ref=e77]: 当前已进入持续写作阶段，优先保持任务书、正文和审查闭环。
+        - generic [ref=e78]:
+          - generic [ref=e79]:
+            - paragraph [ref=e80]: 项目工作区
+            - article [ref=e82]:
+              - generic [ref=e83]:
+                - generic [ref=e84]:
+                  - strong [ref=e85]: E2E Smoke 1775472850447
+                  - generic [ref=e86]: 当前项目
+                - paragraph [ref=e87]: 都市异能 · 第 1 卷 / 第 0 章
+                - paragraph [ref=e88]: 目录：webnovel-project
+              - button "已选中" [disabled] [ref=e89]
+          - generic [ref=e90]:
+            - paragraph [ref=e91]: 创建兼容项目
+            - generic [ref=e92]:
+              - generic [ref=e93]:
+                - generic [ref=e94]: 作品标题
+                - textbox "作品标题" [ref=e95]:
+                  - /placeholder: 例如：灰雾账本
+              - generic [ref=e96]:
+                - generic [ref=e97]: 目录名
+                - textbox "目录名" [ref=e98]:
+                  - /placeholder: 可留空，默认跟随标题
+              - generic [ref=e99]:
+                - generic [ref=e100]: 题材方向
+                - textbox "题材方向" [ref=e101]:
+                  - /placeholder: 都市脑洞 / 玄幻升级 / 规则怪谈
+              - generic [ref=e102]:
+                - generic [ref=e103]: 目标读者
+                - textbox "目标读者" [ref=e104]:
+                  - /placeholder: 通用网文读者
+                  - text: 通用网文读者
+              - generic [ref=e105]:
+                - generic [ref=e106]: 目标字数
+                - spinbutton "目标字数" [ref=e107]: "500000"
+              - generic [ref=e108]:
+                - generic [ref=e109]: 目标章节
+                - spinbutton "目标章节" [ref=e110]: "120"
+            - generic [ref=e111]:
+              - button "创建并设为当前项目" [ref=e112] [cursor=pointer]
+              - paragraph [ref=e113]: 会生成兼容目录和基础项目文件。
+  - alert [ref=e114]

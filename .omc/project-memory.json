@@ -1,0 +1,508 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1775471786960,
+  "projectRoot": "D:\\ebak\\webnovel-writer-master",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "next",
+        "version": "16.1.7",
+        "category": "fullstack"
+      },
+      {
+        "name": "react",
+        "version": "19.2.0",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.2.0",
+        "category": "frontend"
+      },
+      {
+        "name": "@playwright/test",
+        "version": "1.55.0",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": "npm test",
+    "lintCommand": null,
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "node ./node_modules/next/dist/bin/next dev",
+      "build": "node ./node_modules/next/dist/bin/next build",
+      "start": "node ./node_modules/next/dist/bin/next start",
+      "test": "node --test tests/**/*.test.mjs",
+      "test:e2e": "node ./scripts/run-playwright-e2e.mjs",
+      "test:e2e:headed": "node ./scripts/run-playwright-e2e.mjs --headed",
+      "test:e2e:live-ai": "node ./scripts/run-playwright-e2e.mjs tests/e2e/live-ai.spec.mjs"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "app",
+      "components",
+      "docs",
+      "lib",
+      "scripts",
+      "tests"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "app": {
+      "path": "app",
+      "purpose": "Application code",
+      "fileCount": 7,
+      "lastAccessed": 1775471786861,
+      "keyFiles": [
+        "error.tsx",
+        "global-error.tsx",
+        "globals.css",
+        "layout.tsx",
+        "loading.tsx"
+      ]
+    },
+    "components": {
+      "path": "components",
+      "purpose": "UI components",
+      "fileCount": 12,
+      "lastAccessed": 1775471786862,
+      "keyFiles": [
+        "app-shell.tsx",
+        "document-workspace.tsx",
+        "empty-state.tsx",
+        "focus-board.tsx",
+        "ideation-form.tsx"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 7,
+      "lastAccessed": 1775471786909,
+      "keyFiles": [
+        "deployment-checklist.md",
+        "doc-lifecycle.md",
+        "handoff-faq.md",
+        "README.md",
+        "release-2026-03-24-web-app.md"
+      ]
+    },
+    "lib": {
+      "path": "lib",
+      "purpose": "Library code",
+      "fileCount": 0,
+      "lastAccessed": 1775471786910,
+      "keyFiles": []
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 2,
+      "lastAccessed": 1775471786911,
+      "keyFiles": [
+        "playwright-e2e-runtime.mjs",
+        "run-playwright-e2e.mjs"
+      ]
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 0,
+      "lastAccessed": 1775471786912,
+      "keyFiles": []
+    },
+    "types": {
+      "path": "types",
+      "purpose": "Type definitions",
+      "fileCount": 9,
+      "lastAccessed": 1775471786914,
+      "keyFiles": [
+        "ai.ts",
+        "briefs.ts",
+        "context.ts",
+        "documents.ts",
+        "ideation.ts"
+      ]
+    },
+    "webnovel-project": {
+      "path": "webnovel-project",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1775471786915,
+      "keyFiles": []
+    },
+    "app\\api": {
+      "path": "app\\api",
+      "purpose": "API routes",
+      "fileCount": 0,
+      "lastAccessed": 1775471786917,
+      "keyFiles": []
+    },
+    "lib\\api": {
+      "path": "lib\\api",
+      "purpose": "API routes",
+      "fileCount": 3,
+      "lastAccessed": 1775471786921,
+      "keyFiles": [
+        "rate-limit.ts",
+        "sanitize-error.ts",
+        "sanitize.ts"
+      ]
+    },
+    "lib\\app": {
+      "path": "lib\\app",
+      "purpose": "Application code",
+      "fileCount": 1,
+      "lastAccessed": 1775471786922,
+      "keyFiles": [
+        "navigation.ts"
+      ]
+    },
+    "tests\\scripts": {
+      "path": "tests\\scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 1,
+      "lastAccessed": 1775471786924,
+      "keyFiles": [
+        "playwright-e2e-runtime.test.mjs"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "",
+      "accessCount": 33,
+      "lastAccessed": 1775518822962,
+      "type": "directory"
+    },
+    {
+      "path": "tests\\e2e\\app-smoke.spec.mjs",
+      "accessCount": 6,
+      "lastAccessed": 1775518494804,
+      "type": "file"
+    },
+    {
+      "path": "components\\provider-settings-form.tsx",
+      "accessCount": 6,
+      "lastAccessed": 1775518708401,
+      "type": "file"
+    },
+    {
+      "path": "docs\\superpowers\\specs\\2026-04-06-single-project-control-center-design.md",
+      "accessCount": 5,
+      "lastAccessed": 1775517965212,
+      "type": "file"
+    },
+    {
+      "path": "lib\\projects\\workspace.js",
+      "accessCount": 5,
+      "lastAccessed": 1775517999493,
+      "type": "file"
+    },
+    {
+      "path": "components\\app-shell.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1775518494442,
+      "type": "file"
+    },
+    {
+      "path": "app\\dashboard\\page.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1775518494594,
+      "type": "file"
+    },
+    {
+      "path": "app\\page.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1775518539892,
+      "type": "file"
+    },
+    {
+      "path": "app\\outline\\page.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1775518539978,
+      "type": "file"
+    },
+    {
+      "path": "app\\review\\page.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1775518540125,
+      "type": "file"
+    },
+    {
+      "path": "app\\library\\page.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1775518540215,
+      "type": "file"
+    },
+    {
+      "path": "app\\settings\\page.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1775518540759,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 3,
+      "lastAccessed": 1775517965324,
+      "type": "file"
+    },
+    {
+      "path": "components\\document-workspace.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1775518023745,
+      "type": "file"
+    },
+    {
+      "path": "app\\writing\\page.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1775518024018,
+      "type": "file"
+    },
+    {
+      "path": "lib\\settings\\provider-config.js",
+      "accessCount": 3,
+      "lastAccessed": 1775518046492,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\settings\\providers\\route.ts",
+      "accessCount": 3,
+      "lastAccessed": 1775518115579,
+      "type": "file"
+    },
+    {
+      "path": "lib\\app\\navigation.ts",
+      "accessCount": 3,
+      "lastAccessed": 1775518494293,
+      "type": "file"
+    },
+    {
+      "path": "docs\\superpowers\\plans\\2026-03-31-frontend-workspace-refactor.md",
+      "accessCount": 3,
+      "lastAccessed": 1775518494875,
+      "type": "file"
+    },
+    {
+      "path": "types\\project.ts",
+      "accessCount": 3,
+      "lastAccessed": 1775518540350,
+      "type": "file"
+    },
+    {
+      "path": "lib\\dashboard\\focus.js",
+      "accessCount": 3,
+      "lastAccessed": 1775518541123,
+      "type": "file"
+    },
+    {
+      "path": "lib\\dashboard\\metrics.js",
+      "accessCount": 3,
+      "lastAccessed": 1775518541137,
+      "type": "file"
+    },
+    {
+      "path": "lib\\projects\\discovery.js",
+      "accessCount": 3,
+      "lastAccessed": 1775518708513,
+      "type": "file"
+    },
+    {
+      "path": "C:\\Users\\truel\\.claude\\plugins\\cache\\claude-plugins-official\\superpowers\\5.0.7\\skills\\brainstorming\\visual-companion.md",
+      "accessCount": 2,
+      "lastAccessed": 1775476890781,
+      "type": "file"
+    },
+    {
+      "path": "components\\writing-studio.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1775518023633,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\projects\\current\\documents\\route.ts",
+      "accessCount": 2,
+      "lastAccessed": 1775518046405,
+      "type": "file"
+    },
+    {
+      "path": "components\\project-workspace-panel.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1775518115737,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\projects\\route.ts",
+      "accessCount": 2,
+      "lastAccessed": 1775518149248,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\projects\\current\\route.ts",
+      "accessCount": 2,
+      "lastAccessed": 1775518149385,
+      "type": "file"
+    },
+    {
+      "path": "lib\\projects\\documents.js",
+      "accessCount": 2,
+      "lastAccessed": 1775518196364,
+      "type": "file"
+    },
+    {
+      "path": "tests\\dashboard\\focus.test.mjs",
+      "accessCount": 2,
+      "lastAccessed": 1775518777256,
+      "type": "file"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "accessCount": 1,
+      "lastAccessed": 1775472286956,
+      "type": "file"
+    },
+    {
+      "path": "app\\ideation\\page.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1775472461378,
+      "type": "file"
+    },
+    {
+      "path": "scripts\\run-playwright-e2e.mjs",
+      "accessCount": 1,
+      "lastAccessed": 1775472683493,
+      "type": "file"
+    },
+    {
+      "path": "C:\\Users\\truel\\AppData\\Local\\Temp\\claude\\D--ebak-webnovel-writer-master\\7c12c9c5-b348-4b7f-b427-026d73c53ea0\\tasks\\b57a7397o.output",
+      "accessCount": 1,
+      "lastAccessed": 1775472933695,
+      "type": "file"
+    },
+    {
+      "path": "lib\\hooks\\use-document-workspace.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1775473019379,
+      "type": "file"
+    },
+    {
+      "path": "lib",
+      "accessCount": 1,
+      "lastAccessed": 1775473160700,
+      "type": "directory"
+    },
+    {
+      "path": "app",
+      "accessCount": 1,
+      "lastAccessed": 1775473160809,
+      "type": "directory"
+    },
+    {
+      "path": "lib\\project\\documents.js",
+      "accessCount": 1,
+      "lastAccessed": 1775473272457,
+      "type": "file"
+    },
+    {
+      "path": "lib\\project\\root.js",
+      "accessCount": 1,
+      "lastAccessed": 1775473272603,
+      "type": "file"
+    },
+    {
+      "path": "docs",
+      "accessCount": 1,
+      "lastAccessed": 1775476520242,
+      "type": "directory"
+    },
+    {
+      "path": ".claude",
+      "accessCount": 1,
+      "lastAccessed": 1775476520354,
+      "type": "directory"
+    },
+    {
+      "path": "lib\\ai\\actions.js",
+      "accessCount": 1,
+      "lastAccessed": 1775476601895,
+      "type": "file"
+    },
+    {
+      "path": "lib\\ai\\providers.js",
+      "accessCount": 1,
+      "lastAccessed": 1775476601983,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 1,
+      "lastAccessed": 1775476602258,
+      "type": "file"
+    },
+    {
+      "path": "docs\\superpowers\\specs\\2026-03-23-web-app-productization-design.md",
+      "accessCount": 1,
+      "lastAccessed": 1775481623119,
+      "type": "file"
+    },
+    {
+      "path": "docs\\superpowers\\specs\\2026-04-02-single-project-cleanup-design.md",
+      "accessCount": 1,
+      "lastAccessed": 1775481623151,
+      "type": "file"
+    },
+    {
+      "path": "tests",
+      "accessCount": 1,
+      "lastAccessed": 1775481890133,
+      "type": "directory"
+    },
+    {
+      "path": "tests\\dashboard\\metrics.test.mjs",
+      "accessCount": 1,
+      "lastAccessed": 1775481916783,
+      "type": "file"
+    },
+    {
+      "path": "tests\\settings\\provider-config.test.mjs",
+      "accessCount": 1,
+      "lastAccessed": 1775481916964,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}
