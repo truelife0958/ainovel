@@ -39,6 +39,10 @@ test-results/
 .playwright/
 screenshots/
 test-screenshots/
+
+# Local worktrees and Playwright MCP artifacts
+.worktrees/
+.playwright-mcp/
 *.tsbuildinfo
 next-env.d.ts
 
@@ -47,6 +51,11 @@ webnovel-project/
 
 # Temp files
 tmp*
+
+# Screenshots and manual test artifacts
+*.png
+manual-smoke-*/
+.codex
 
 # Local research / sibling projects (avoid accidental commit)
 .sisyphus/
@@ -64,3 +73,11 @@ _v52_*.json
 _v52_*.txt
 claude_inventory.csv
 *_utf8_sample.txt
+.omx/
+
+# Test project data
+lingyu-enforcer/
+
+# Plugin artifacts
+.omx/
+.superpowers/

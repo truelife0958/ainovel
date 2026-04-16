@@ -26,7 +26,7 @@ export async function GET(request: Request) {
         ok: false,
         error: sanitizeErrorMessage(error, "Unable to load chapter brief"),
       },
-      { status: 400 },
+      { status: 500 },
     );
   }
 }
@@ -57,7 +57,7 @@ export async function PUT(request: Request) {
         ok: false,
         error: sanitizeErrorMessage(error, "Unable to save chapter brief"),
       },
-      { status: 400 },
+      { status: 500 },
     );
   }
 }

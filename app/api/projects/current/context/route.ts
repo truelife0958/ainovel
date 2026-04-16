@@ -27,7 +27,7 @@ export async function GET(request: Request) {
         ok: false,
         error: sanitizeErrorMessage(error, "Unable to load chapter context"),
       },
-      { status: 400 },
+      { status: 500 },
     );
   }
 }

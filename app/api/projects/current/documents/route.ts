@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const kind = asKind(searchParams.get("kind"));
-    const fileName = searchParams.get("file");
+    const fileName = sanitizeInput(searchParams.get("file") ?? "", MAX_FILENAME_LENGTH) || null;
     const projectRoot = await requireProjectRoot();
 
     const data = fileName
@@ -107,10 +107,11 @@ export async function PUT(request: Request) {
     const content = sanitizeContent(rawContent, MAX_CONTENT_SIZE);
 
     const projectRoot = await requireProjectRoot();
-    const document = await updateProjectDocument(projectRoot, kind, body.fileName, content);
+    const safeFileName = sanitizeInput(body.fileName, MAX_FILENAME_LENGTH);
+    const document = await updateProjectDocument(projectRoot, kind, safeFileName, content);
     if (kind === "chapter") {
-      const brief = await readChapterBrief(projectRoot, body.fileName);
-      await syncChapterArtifacts(projectRoot, body.fileName, {
+      const brief = await readChapterBrief(projectRoot, safeFileName);
+      await syncChapterArtifacts(projectRoot, safeFileName, {
         briefContent: brief.content,
         chapterContent: document.content,
       });

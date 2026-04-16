@@ -6,7 +6,7 @@
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 // Auto-cleanup every 5 minutes to prevent memory leaks
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [key, record] of rateLimitMap) {
     if (record.resetTime < now) {
@@ -14,6 +14,7 @@ setInterval(() => {
     }
   }
 }, 5 * 60 * 1000);
+cleanupTimer.unref();
 
 export type RateLimitResult = {
   allowed: boolean;
@@ -49,9 +50,12 @@ export function checkRateLimit(
 }
 
 export function getClientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0].trim();
+  // Only trust X-Forwarded-For if explicitly configured via env
+  if (process.env.TRUST_PROXY === "true") {
+    const forwarded = request.headers.get("x-forwarded-for");
+    if (forwarded) {
+      return forwarded.split(",")[0].trim();
+    }
   }
-  return request.headers.get("x-real-ip") || "unknown";
+  return request.headers.get("x-real-ip") || "local";
 }

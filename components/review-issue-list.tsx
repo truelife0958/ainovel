@@ -9,11 +9,6 @@ type ReviewIssueListProps = {
   summary: ReviewSummary;
 };
 
-function severityLabel(count: number): string {
-  if (count === 0) return "无";
-  return count > 3 ? "较多" : "少量";
-}
-
 export function ReviewIssueList({ summary }: ReviewIssueListProps) {
   const focus = buildReviewFocus(summary);
 
@@ -100,7 +95,7 @@ export function ReviewIssueList({ summary }: ReviewIssueListProps) {
                 去创作台修补
               </Link>
             ) : (
-              <Link href="/workspace" className="action-button secondary">
+              <Link href="/" className="action-button secondary">
                 进入创作台
               </Link>
             )}

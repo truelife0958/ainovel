@@ -54,7 +54,7 @@ test("buildReviewFocus keeps only meaningful meta fields and builds the repair j
   assert.equal(focus.summaryText, "建议优先处理：补钩子链");
   assert.equal(
     focus.actionHref,
-    "/workspace?file=%E7%AC%AC0007%E7%AB%A0.md&assistantRequest=%E8%A1%A5%E9%BD%90%E7%AB%A0%E6%9C%AB%E6%9C%AA%E9%97%AD%E5%90%88%E9%97%AE%E9%A2%98%E3%80%81%E9%92%A9%E5%AD%90%E4%B8%8E%E5%85%91%E7%8E%B0%E9%A2%84%E6%9C%9F%E3%80%82",
+    "/?file=%E7%AC%AC0007%E7%AB%A0.md&assistantRequest=%E8%A1%A5%E9%BD%90%E7%AB%A0%E6%9C%AB%E6%9C%AA%E9%97%AD%E5%90%88%E9%97%AE%E9%A2%98%E3%80%81%E9%92%A9%E5%AD%90%E4%B8%8E%E5%85%91%E7%8E%B0%E9%A2%84%E6%9C%9F%E3%80%82",
   );
   assert.deepEqual(focus.metaItems, [
     "章节：第 7 章",

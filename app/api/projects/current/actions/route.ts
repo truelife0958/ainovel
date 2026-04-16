@@ -11,11 +11,14 @@ const AI_RATE_LIMIT_MAX = 10;
 const AI_RATE_LIMIT_WINDOW = 60000;
 
 function validKind(value: unknown) {
-  return value === "outline" || value === "chapter";
+  return value === "outline" || value === "chapter" || value === "setting";
 }
 
 function validMode(value: unknown) {
-  return value === "outline_plan" || value === "chapter_plan" || value === "chapter_write";
+  return value === "outline_plan" || value === "chapter_plan" || value === "chapter_write"
+    || value === "setting_worldview" || value === "setting_protagonist"
+    || value === "setting_antagonist" || value === "setting_synopsis"
+    || value === "setting_volume" || value === "reference_analysis";
 }
 
 function validApplyMode(value: unknown) {
@@ -89,7 +92,7 @@ export async function POST(request: Request) {
         ok: false,
         error: sanitizeErrorMessage(error, "Unable to run AI action"),
       },
-      { status: 400 },
+      { status: 500 },
     );
   }
 }

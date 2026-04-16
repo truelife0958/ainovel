@@ -1,4 +1,6 @@
 ﻿export type ProjectSummary = {
+  id: string;
+  root: string;
   title: string;
   genre: string;
   currentChapter: number;
@@ -14,10 +16,5 @@
 export type ProjectWorkspace = {
   workspaceRoot: string;
   currentProjectId: string | null;
-  projects: Array<
-    ProjectSummary & {
-      id: string;
-      root: string;
-    }
-  >;
+  projects: ProjectSummary[];
 };

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
+import { sanitizeInput } from "@/lib/api/sanitize";
 import {
   listProjectsWithCurrent,
   createProject,
@@ -25,14 +26,15 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    if (!body.title || typeof body.title !== "string" || !body.title.trim()) {
+    const safeTitle = sanitizeInput(body.title, 200);
+    if (!safeTitle) {
       return NextResponse.json(
         { ok: false, error: "Project title is required" },
         { status: 400 },
       );
     }
 
-    const project = await createProject(process.cwd(), body);
+    const project = await createProject(process.cwd(), { ...body, title: safeTitle });
     const workspace = await listProjectsWithCurrent();
 
     return NextResponse.json({
@@ -45,7 +47,7 @@ export async function POST(request: Request) {
         ok: false,
         error: sanitizeErrorMessage(error, "Unable to create project"),
       },
-      { status: 400 },
+      { status: 500 },
     );
   }
 }

@@ -16,8 +16,6 @@ type CreateProjectForm = {
   title: string;
   folderName: string;
   genre: string;
-  targetWords: string;
-  targetChapters: string;
   targetReader: string;
 };
 
@@ -25,9 +23,7 @@ const emptyForm: CreateProjectForm = {
   title: "",
   folderName: "",
   genre: "",
-  targetWords: "500000",
-  targetChapters: "120",
-  targetReader: "通用网文读者",
+  targetReader: "",
 };
 
 export function ProjectWorkspacePanel({ initialWorkspace }: ProjectWorkspacePanelProps) {
@@ -169,7 +165,7 @@ export function ProjectWorkspacePanel({ initialWorkspace }: ProjectWorkspacePane
             <input
               value={form.genre}
               onChange={(event) => updateField("genre", event.target.value)}
-              placeholder="都市脑洞 / 玄幻升级 / 规则怪谈"
+              placeholder="例如：都市异能"
             />
           </label>
           <label>
@@ -177,25 +173,7 @@ export function ProjectWorkspacePanel({ initialWorkspace }: ProjectWorkspacePane
             <input
               value={form.targetReader}
               onChange={(event) => updateField("targetReader", event.target.value)}
-              placeholder="通用网文读者"
-            />
-          </label>
-          <label>
-            <span>目标字数</span>
-            <input
-              type="number"
-              min="0"
-              value={form.targetWords}
-              onChange={(event) => updateField("targetWords", event.target.value)}
-            />
-          </label>
-          <label>
-            <span>目标章节</span>
-            <input
-              type="number"
-              min="0"
-              value={form.targetChapters}
-              onChange={(event) => updateField("targetChapters", event.target.value)}
+              placeholder="例如：男频爽文读者"
             />
           </label>
         </div>
@@ -206,7 +184,7 @@ export function ProjectWorkspacePanel({ initialWorkspace }: ProjectWorkspacePane
               : "创建并设为当前项目"}
           </button>
           <p className="muted">
-            {message || "会生成兼容目录和基础项目文件。"}
+            {message || "创建后可在立项页补全题材、目标等详细信息。"}
           </p>
         </div>
       </form>

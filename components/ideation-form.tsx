@@ -9,9 +9,10 @@ import type { ProjectIdeation } from "@/types/ideation";
 
 type IdeationFormProps = {
   initialIdeation: ProjectIdeation;
+  onClose?: () => void;
 };
 
-export function IdeationForm({ initialIdeation }: IdeationFormProps) {
+export function IdeationForm({ initialIdeation, onClose }: IdeationFormProps) {
   const router = useRouter();
   const [form, setForm] = useState(initialIdeation);
   const [message, setMessage] = useState("");
@@ -171,6 +172,18 @@ export function IdeationForm({ initialIdeation }: IdeationFormProps) {
               rows={6}
               value={form.coreSellingPoints}
               onChange={(event) => updateField("coreSellingPoints", event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Tab") {
+                  event.preventDefault();
+                  const ta = event.currentTarget;
+                  const start = ta.selectionStart;
+                  const end = ta.selectionEnd;
+                  const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+                  if (setter) setter.call(ta, ta.value.slice(0, start) + "\t" + ta.value.slice(end));
+                  ta.setSelectionRange(start + 1, start + 1);
+                  ta.dispatchEvent(new Event("input", { bubbles: true }));
+                }
+              }}
             />
           </label>
         </div>
@@ -192,10 +205,16 @@ export function IdeationForm({ initialIdeation }: IdeationFormProps) {
           <button type="submit" className="action-button secondary" disabled={isPending}>
             {isPending ? "保存中..." : "保存立项信息"}
           </button>
-          <Link href="/workspace" className="action-button">
-            进入创作
-          </Link>
-          <p className="muted">
+          {onClose ? (
+            <button type="button" className="action-button" onClick={onClose}>
+              返回创作
+            </button>
+          ) : (
+            <Link href="/" className="action-button">
+              进入创作
+            </Link>
+          )}
+          <p className="muted" aria-live="polite">
             {message || "填写核心定位后，点击进入创作开始工作。"}
           </p>
         </div>

@@ -1,7 +1,7 @@
 {
-  "tool_name": "Agent",
-  "tool_input_preview": "{\"description\":\"Inspect workspace architecture\",\"prompt\":\"Research only; do not modify files. We are writing an implementation plan for `D:\\\\ebak\\\\webnovel-writer-master\\\\docs\\\\superpowers\\\\specs\\\\202...",
-  "error": "Cannot create agent worktree: not in a git repository and no WorktreeCreate hooks are configured. Configure WorktreeCreate/WorktreeRemove hooks in settings.json to use worktree isolation with other VCS systems.",
-  "timestamp": "2026-04-06T23:27:26.812Z",
-  "retry_count": 4
+  "tool_name": "mcp__plugin_playwright_playwright__browser_navigate",
+  "tool_input_preview": "{\"url\":\"http://localhost:3000\"}",
+  "error": "### Error\nError: browserBackend.callTool: Target page, context or browser has been closed",
+  "timestamp": "2026-04-15T23:00:02.737Z",
+  "retry_count": 1
 }

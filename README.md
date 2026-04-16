@@ -1,10 +1,12 @@
 # Webnovel Writer
 
-[![License](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6.svg)](https://www.typescriptlang.org/)
 
 基于 Next.js 16 + React 19 的长篇网文 AI 辅助创作系统，支持 200 万字量级连载创作。
+
+零运行时依赖（仅 Next.js / React），单页面模态框架构，内置 9 家 AI 提供商适配。
 
 ## 快速开始
 
@@ -12,136 +14,136 @@
 npm install
 npm run dev          # 开发服务器 http://localhost:3000
 npm run build        # 生产构建
-npm test             # 单元测试
+npm test             # 单元测试 (66 tests)
 npm run test:e2e     # E2E 测试 (Playwright)
 ```
 
 ### 环境变量 (可选)
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `WEBNOVEL_WRITER_CONFIG_ROOT` | 配置目录路径 | `process.cwd()` |
-| `NEXT_DIST_DIR` | Next.js 构建输出目录 | `.next` |
+| 变量 | 说明 |
+|------|------|
+| `WEBNOVEL_WRITER_KEY` | API Key 加密密钥（推荐在生产环境设置） |
+| `WEBNOVEL_WRITER_CONFIG_ROOT` | 配置文件存储目录（默认 `~/.webnovel-writer`） |
 
-## AI 模型配置
+## 核心功能
 
-支持 **9 个 AI 提供商**，通过设置页面 `/settings` 配置：
+- **多 AI 提供商支持** — OpenAI、Anthropic、OpenRouter、DeepSeek、通义千问、智谱 GLM、Gemini、Mistral、通用聚合 API
+- **一体化创作台** — 编辑、规划、生成、审查全在一个页面完成
+- **章节任务书** — 结构化的章节执行计划，AI 根据任务书精准生成
+- **项目管理** — 多项目切换、立项信息管理、审查问题追踪
+- **暗色模式** — 支持亮/暗主题切换，自动跟随系统偏好
+- **专注模式** — 隐藏工具栏，沉浸式写作体验
+- **自动保存** — 30 秒自动保存，防止意外丢失
+- **键盘快捷键** — Ctrl+S 保存、Ctrl+B 任务书面板
 
-| 提供商 | 默认模型 | API 类型 |
-|--------|---------|---------|
-| OpenAI | gpt-5-mini | Responses API |
-| Anthropic | claude-sonnet-4-5 | Messages API |
-| OpenRouter | openai/gpt-5-mini | Chat Completions |
-| DeepSeek | deepseek-chat | OpenAI Compatible |
-| 通义千问 | qwen-plus | OpenAI Compatible |
-| 智谱GLM | glm-4-flash | OpenAI Compatible |
-| Gemini | gemini-2.0-flash | Google AI API |
-| Mistral | mistral-large-latest | OpenAI Compatible |
-| **通用API** | (自定义) | OpenAI Compatible |
+## 技术架构
 
-**通用API (NewAPI/OneAPI)**：设置 Base URL 为你的聚合接口地址，Model 填写任意模型 ID，系统通过标准 `/v1/chat/completions` 路由。
+### 单页面 + 模态框架构
 
-### 角色路由
+所有功能集中在 `/` 页面，通过模态框承载不同功能区域：
 
-4 个写作环节可分别指定模型：立项、大纲、写作、审查。未指定则使用默认提供商的模型。
+| 模态框 | 功能 | 触发方式 |
+|--------|------|----------|
+| 项目管理 | 创建/切换项目 | 工具栏项目下拉 |
+| 立项 | 编辑作品核心定位 | 工具栏「立项」按钮 |
+| 审查 | 查看问题和修补建议 | 工具栏「审查」按钮 |
+| AI 连接 | 配置 AI 提供商和密钥 | 工具栏 AI 状态 / 齿轮图标 |
 
-## 功能模块
+### API 路由
 
-| 页面 | 路径 | 功能 |
+| 路由 | 方法 | 说明 |
 |------|------|------|
-| 总览 | /dashboard | 项目概览、关键指标、快捷操作 |
-| 立项 | /ideation | 题材、卖点、主角、金手指设定 |
-| 设定 | /library | 世界观、角色卡、力量体系 |
-| 大纲 | /outline | 总纲、卷纲、AI 规划增强 |
-| 写作 | /writing | 任务书、上下文、AI 规划/生成、正文编辑 |
-| 审查 | /review | 多维度质量扫描、审查报告 |
-| 设置 | /settings | AI 提供商、API Key、模型路由 |
-
-## AI 写作流程
-
-```
-章节任务书 → AI 规划本章 → 审查诊断 → AI 生成正文 → 人工润色
-     ↑                                              ↓
-     └──── 修补建议 ←── 结构检查 ←──────────────────┘
-```
-
-1. **AI 规划**：基于项目设定、大纲、前文摘要生成结构化任务书
-2. **AI 生成**：根据任务书和上下文生成章节正文
-3. **修补动作**：智能推荐修补建议（补齐钩子、强化爽点等）
-
-## 项目结构
-
-```
-├── app/                  # Next.js App Router
-│   ├── api/              # API 路由
-│   │   ├── projects/     # 项目管理 + 文档/大纲/AI 动作
-│   │   └── settings/     # 设置 (AI 提供商)
-│   ├── dashboard/        # 总览页
-│   ├── ideation/         # 立项页
-│   ├── library/          # 设定页
-│   ├── outline/          # 大纲页
-│   ├── writing/          # 写作页
-│   ├── review/           # 审查页
-│   └── settings/         # 设置页
-├── components/           # React 组件
-│   ├── app-shell.tsx     # 全局布局壳
-│   ├── document-workspace.tsx  # 通用文档编辑器
-│   ├── writing-studio.tsx     # 写作工作台
-│   ├── provider-settings-form.tsx  # AI 设置表单
-│   └── ...
-├── lib/
-│   ├── ai/               # AI 适配层 (providers, actions, guardrails)
-│   ├── hooks/            # React Hooks (useDocumentWorkspace)
-│   ├── project/          # 单项目模式 (API 路由使用)
-│   ├── projects/         # 多项目模式 (页面使用)
-│   ├── settings/         # 配置管理、加密
-│   └── ...
-├── types/                # TypeScript 类型
-├── tests/                # 单元测试
-└── .claude/              # Legacy Claude Code 资产
-```
-
-## 技术栈
-
-- **框架**: Next.js 16 (App Router) + React 19
-- **语言**: TypeScript + JavaScript (混合)
-- **样式**: 纯 CSS (无 Tailwind)
-- **存储**: 文件系统 (JSON + Markdown + SQLite)
-- **安全**: AES-256-GCM 加密 API Key
-- **测试**: Node.js test runner + Playwright E2E
-
-## Legacy Claude Code 工作流
-
-项目保留完整的 `.claude/` 目录，支持通过 Claude Code CLI 使用命令：
-
-- `/webnovel-init` — 项目初始化
-- `/webnovel-plan [卷号]` — 大纲规划
-- `/webnovel-write [章号]` — 章节创作
-- `/webnovel-review [范围]` — 质量审查
-- `/webnovel-query [关键词]` — 信息查询
-
-详见 [CLAUDE.md](CLAUDE.md)。
-
-## 核心理念
-
-- **大纲即法律** — AI 遵循大纲，不擅自发挥
-- **设定即物理** — 遵守世界观设定，不自相矛盾
-- **发明需识别** — 新实体自动入库管理
-
-## 项目信息
-
-- License: GPL v3
-- 仓库: [GitHub](https://github.com/lingfengQAQ/webnovel-writer)
-
-## API 路由一览
-
-| 路径 | 方法 | 功能 |
-|------|------|------|
-| `/api/projects` | GET, POST | 项目列表、创建项目 |
-| `/api/projects/current` | GET, PUT | 获取/切换当前项目 |
-| `/api/projects/current/documents` | GET, POST, PUT | 文档管理 (设定/大纲/正文) |
+| `/api/projects` | GET, POST | 项目列表 / 创建项目 |
+| `/api/projects/current` | GET, PUT | 当前项目 / 切换项目 |
+| `/api/projects/current/documents` | GET, POST, PUT | 文档 CRUD（章节/设定/大纲） |
 | `/api/projects/current/briefs` | GET, PUT | 章节任务书 |
-| `/api/projects/current/context` | GET | 章节上下文 |
-| `/api/projects/current/actions` | POST | AI 动作 (规划/生成) |
+| `/api/projects/current/context` | GET | 章节上下文构建 |
 | `/api/projects/current/ideation` | GET, PUT | 立项数据 |
+| `/api/projects/current/actions` | POST | AI 操作（规划/生成） |
+| `/api/projects/current/review` | GET | 审查摘要 |
 | `/api/settings/providers` | GET, PUT | AI 提供商配置 |
+| `/api/settings/providers/test` | GET | 测试 AI 连接 |
+
+### 项目结构
+
+```
+app/
+├── page.tsx                    # 主页面（服务端组件）
+├── layout.tsx                  # 根布局（暗色模式防闪烁）
+├── globals.css                 # 全局样式（含暗色主题）
+├── loading.tsx                 # 骨架屏加载
+├── error.tsx                   # 错误边界
+└── api/                        # 11 个 API 路由
+
+components/
+├── app-shell.tsx               # 应用外壳（工具栏 + 模态框）
+├── toolbar.tsx                 # 顶部工具栏（项目/AI状态/主题切换）
+├── bottom-bar.tsx              # 底部操作栏（标签/文件选择/AI按钮）
+├── creative-workspace.tsx      # 核心编辑工作区
+├── connection-wizard.tsx       # AI 连接配置向导
+├── ideation-form.tsx           # 立项表单
+├── project-workspace-panel.tsx # 项目管理面板
+├── review-issue-list.tsx       # 审查问题列表
+├── ui/                         # 基础 UI 组件
+│   ├── modal.tsx               # 模态框
+│   ├── dropdown.tsx            # 下拉菜单
+│   └── bottom-panel.tsx        # 底部滑出面板
+└── workspace/
+    └── chapter-brief-editor.tsx # 章节任务书编辑器
+
+lib/
+├── ai/                         # AI 集成层
+│   ├── actions.js              # AI 动作编排
+│   ├── providers.js            # 9 家提供商适配
+│   ├── guardrails.js           # 原创性护栏
+│   ├── write-guard.js          # 写前检查
+│   └── repair-*.js             # 修补建议
+├── api/                        # API 工具
+│   ├── rate-limit.ts           # 内存速率限制
+│   ├── sanitize.ts             # 输入净化
+│   └── sanitize-error.ts       # 错误消息净化
+├── projects/                   # 项目数据层
+│   ├── discovery.js            # 项目发现
+│   ├── workspace.js            # 工作区管理
+│   ├── documents.js            # 文档读写
+│   ├── briefs.js               # 任务书读写
+│   ├── context.js              # 上下文构建
+│   ├── state.js                # 状态管理（带互斥锁）
+│   ├── sync.js                 # 章节产物同步
+│   └── review.js               # 审查摘要
+├── settings/
+│   ├── provider-config.js      # 提供商配置（AES-256-GCM 加密）
+│   └── encryption.js           # 加解密工具
+└── utils.js                    # 共享工具函数
+
+types/                          # TypeScript 类型定义
+tests/                          # 66 个单元测试 + E2E 测试
+```
+
+### 安全特性
+
+- **API Key 加密存储** — AES-256-GCM 加密，支持自定义密钥
+- **输入净化** — 所有用户输入经过控制字符过滤和长度限制
+- **速率限制** — AI 操作和设置接口均有请求频率限制
+- **SSRF 防护** — 阻止提供商 URL 指向内网地址
+- **错误消息净化** — 阻止内部路径泄露
+
+## Claude Code 集成
+
+本项目同时包含完整的 Claude Code 辅助创作系统（`.claude/` 目录）：
+
+- **8 个专职 Agent** — 上下文、数据链、追读力、连贯性、一致性、节奏、爽点、OOC 检查
+- **7 个核心 Skill** — 初始化、规划、写作、审查、查询、恢复、学习
+- **Python 数据脚本** — SQLite 索引管理、上下文提取、风格采样
+- **题材模板库** — 37 种网文题材模板 + 反套路库
+
+详见 [CLAUDE.md](CLAUDE.md) 获取完整的创作工作流说明。
+
+## 开发
+
+```bash
+npm run dev          # 启动开发服务器
+npm test             # 运行单元测试
+npm run test:e2e     # 运行 E2E 测试
+npm run build        # 生产构建
+```

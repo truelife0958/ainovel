@@ -13,7 +13,14 @@ Data Modules - 数据链模块包
 """
 
 from .config import DataModulesConfig, get_config, set_project_root
-from .api_client import ModalAPIClient, get_client
+
+# api_client 依赖 aiohttp，懒加载避免缺包时阻断其他模块
+try:
+    from .api_client import ModalAPIClient, get_client
+except ImportError:
+    ModalAPIClient = None
+    get_client = None
+
 from .entity_linker import EntityLinker, DisambiguationResult
 from .state_manager import StateManager, EntityState, Relationship, StateChange
 from .index_manager import (

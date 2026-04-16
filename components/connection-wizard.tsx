@@ -22,32 +22,16 @@ type ConnectionWizardProps = {
 type ProviderSecretState = Record<ProviderId, string>;
 type ProviderClearState = Record<ProviderId, boolean>;
 
-const emptySecrets: ProviderSecretState = {
-  openai: "",
-  anthropic: "",
-  openrouter: "",
-  deepseek: "",
-  qwen: "",
-  glm: "",
-  gemini: "",
-  mistral: "",
-  custom: "",
-};
-
-const emptyClearFlags: ProviderClearState = {
-  openai: false,
-  anthropic: false,
-  openrouter: false,
-  deepseek: false,
-  qwen: false,
-  glm: false,
-  gemini: false,
-  mistral: false,
-  custom: false,
-};
-
 const providerIds: ProviderId[] = ["openai", "anthropic", "openrouter", "deepseek", "qwen", "glm", "gemini", "mistral", "custom"];
 const roleIds: ModelRole[] = ["ideation", "outlining", "writing", "review"];
+
+const emptySecrets: ProviderSecretState = Object.fromEntries(
+  providerIds.map((id) => [id, ""]),
+) as ProviderSecretState;
+
+const emptyClearFlags: ProviderClearState = Object.fromEntries(
+  providerIds.map((id) => [id, false]),
+) as ProviderClearState;
 
 const roleLabels: Record<ModelRole, string> = {
   ideation: "立项",
@@ -67,8 +51,6 @@ const costPresetDescriptions: Record<CostPreset, string> = {
   balanced: "兼顾质量与成本，适合日常创作",
   budget: "使用经济模型，适合大量生成",
 };
-
-type ConnectionMode = "aggregated" | "direct";
 
 export function ConnectionWizard({ initialConfig }: ConnectionWizardProps) {
   const [config, setConfig] = useState(initialConfig);
@@ -115,46 +97,61 @@ export function ConnectionWizard({ initialConfig }: ConnectionWizardProps) {
     }));
   }
 
+  async function saveConfig(): Promise<boolean> {
+    const customConfigured = Boolean(
+      secrets.custom.trim() || (config.providers.custom.hasApiKey && !clearFlags.custom),
+    );
+    const activeProvider =
+      !showAdvanced && customConfigured
+        ? "custom"
+        : config.activeProvider;
+
+    const providers = Object.fromEntries(
+      providerIds.map((providerId) => [
+        providerId,
+        {
+          baseUrl: config.providers[providerId].baseUrl,
+          model: config.providers[providerId].model,
+          clearApiKey: clearFlags[providerId],
+          ...(secrets[providerId] ? { apiKey: secrets[providerId] } : {}),
+        },
+      ]),
+    );
+
+    const response = await fetch("/api/settings/providers", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        activeProvider,
+        costPreset: config.costPreset,
+        providers,
+        roleModels: config.roleModels,
+      }),
+    });
+    const payload = await response.json();
+
+    if (!response.ok || !payload.ok) {
+      setMessage(payload.error || "保存失败");
+      return false;
+    }
+
+    setConfig(payload.data);
+    setSecrets({ ...emptySecrets });
+    setClearFlags({ ...emptyClearFlags });
+    return true;
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
 
     startTransition(async () => {
       try {
-        const providers = Object.fromEntries(
-          providerIds.map((providerId) => [
-            providerId,
-            {
-              baseUrl: config.providers[providerId].baseUrl,
-              model: config.providers[providerId].model,
-              clearApiKey: clearFlags[providerId],
-              ...(secrets[providerId] ? { apiKey: secrets[providerId] } : {}),
-            },
-          ]),
-        );
-
-        const response = await fetch("/api/settings/providers", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            activeProvider: config.activeProvider,
-            costPreset: config.costPreset,
-            providers,
-            roleModels: config.roleModels,
-          }),
-        });
-        const payload = await response.json();
-
-        if (!response.ok || !payload.ok) {
-          setMessage(payload.error || "保存失败");
-          return;
+        const ok = await saveConfig();
+        if (ok) {
+          setMessage("连接配置已保存");
+          setTestResult(null);
         }
-
-        setConfig(payload.data);
-        setSecrets({ ...emptySecrets });
-        setClearFlags({ ...emptyClearFlags });
-        setMessage("连接配置已保存");
-        setTestResult(null);
       } catch {
         setMessage("网络错误，保存设置失败，请重试。");
       }
@@ -165,6 +162,13 @@ export function ConnectionWizard({ initialConfig }: ConnectionWizardProps) {
     setTestResult(null);
     startTestTransition(async () => {
       try {
+        const ok = await saveConfig();
+        if (!ok) {
+          setTestResult({ ok: false, message: "保存失败，无法测试连接" });
+          return;
+        }
+        setMessage("配置已保存，正在测试连接...");
+
         const response = await fetch("/api/settings/providers/test");
         const payload = await response.json();
         if (payload.ok) {
@@ -271,7 +275,7 @@ export function ConnectionWizard({ initialConfig }: ConnectionWizardProps) {
             className="action-button"
             disabled={isPending}
           >
-            {isPending ? "保存中..." : "测试连接并启用"}
+            {isPending ? "保存中..." : "保存并启用"}
           </button>
         </div>
 

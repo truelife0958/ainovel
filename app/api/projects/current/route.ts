@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
+import { sanitizeInput } from "@/lib/api/sanitize";
 import {
   listProjectsWithCurrent,
   setCurrentProject,
@@ -31,9 +32,9 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const projectId = body.projectId;
+    const projectId = sanitizeInput(body.projectId, 200);
 
-    if (!projectId || typeof projectId !== "string") {
+    if (!projectId) {
       return NextResponse.json(
         { ok: false, error: "Project ID is required" },
         { status: 400 },
@@ -53,7 +54,7 @@ export async function PUT(request: Request) {
         ok: false,
         error: sanitizeErrorMessage(error, "Unable to switch project"),
       },
-      { status: 400 },
+      { status: 500 },
     );
   }
 }

@@ -67,6 +67,16 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
+
+    // Validate payload size to prevent abuse
+    const bodyStr = JSON.stringify(body ?? {});
+    if (bodyStr.length > 102400) {
+      return NextResponse.json(
+        { ok: false, error: "配置数据过大" },
+        { status: 400 },
+      );
+    }
+
     await updateProviderConfig(process.env.WEBNOVEL_WRITER_CONFIG_ROOT, body ?? {});
     const config = await readProviderConfigSummary();
 
@@ -80,7 +90,7 @@ export async function PUT(request: Request) {
         ok: false,
         error: sanitizeErrorMessage(error, "Unable to save provider settings"),
       },
-      { status: 400 },
+      { status: 500 },
     );
   }
 }
