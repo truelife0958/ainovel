@@ -123,9 +123,10 @@ export function CreativeWorkspace({
   const briefValidation: ChapterBriefValidation = validateChapterBrief(parsedBrief);
   const writeGuard = evaluateChapterWriteGuard(briefValidation);
 
-  // Save function (memoized for auto-save)
-  const saveDocumentImpl = useCallback(async () => {
-    if (!selectedDocument) return;
+  // Save function (unified: handles both explicit save and silent auto-save)
+  const saveDocument = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!selectedDocument) return undefined;
+    if (!silent) setMessage("");
     try {
       const res = await fetch("/api/projects/current/documents", {
         method: "PUT",
@@ -137,21 +138,32 @@ export function CreativeWorkspace({
         }),
       });
       const payload = await res.json();
-      if (!res.ok || !payload.ok) { setMessage(payload.error || "保存失败"); return; }
+      if (!res.ok || !payload.ok) {
+        if (!silent) setMessage(payload.error || "保存失败");
+        return undefined;
+      }
       if (selectedType === "chapter") setChapterDocs(payload.data.documents);
       setSelectedDocument(payload.data.document);
+      if (!silent) setToast(`已保存《${payload.data.document.title}》`);
       return payload.data.document;
-    } catch { setMessage("网络错误，保存失败"); }
+    } catch {
+      if (!silent) setMessage("网络错误，保存失败");
+      return undefined;
+    }
   }, [selectedDocument, selectedType, chapterContent, assetContent]);
 
-  // Ctrl+S
+  // Ref to latest saveDocument so keyboard effect doesn't re-subscribe on every keystroke
   const saveRef = useRef(saveDocument);
-  saveRef.current = saveDocument;
+  useEffect(() => { saveRef.current = saveDocument; }, [saveDocument]);
+
+  // Ctrl+S / Ctrl+B shortcut handler
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key === "s") {
         event.preventDefault();
-        if (hasSelectedDocument && !isPendingRef.current) saveRef.current();
+        if (hasSelectedDocument && !isPendingRef.current) {
+          startTransition(() => { void saveRef.current(); });
+        }
       }
       // Ctrl+B to toggle brief panel
       if ((event.ctrlKey || event.metaKey) && event.key === "b" && selectedType === "chapter") {
@@ -174,7 +186,7 @@ export function CreativeWorkspace({
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = setTimeout(() => {
       startTransition(async () => {
-        const doc = await saveDocumentImpl();
+        const doc = await saveRef.current({ silent: true });
         if (doc) {
           setAutoSaved(true);
           if (autoSavedTimerRef.current) clearTimeout(autoSavedTimerRef.current);
@@ -184,7 +196,7 @@ export function CreativeWorkspace({
     }, AUTOSAVE_DELAY);
 
     return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
-  }, [chapterDirty, hasSelectedDocument, isPending, aiRunning, saveDocumentImpl]);
+  }, [chapterDirty, hasSelectedDocument, isPending, aiRunning]);
 
   /* ===== Actions ===== */
 
@@ -266,17 +278,6 @@ export function CreativeWorkspace({
         }
         setMessage(`已创建《${payload.data.document.title}》`);
       } catch { setMessage("网络错误，创建失败"); }
-    });
-  }
-
-  function saveDocument() {
-    if (!selectedDocument) return;
-    setMessage("");
-    startTransition(async () => {
-      const doc = await saveDocumentImpl();
-      if (doc) {
-        setToast(`已保存《${doc.title}》`);
-      }
     });
   }
 
@@ -460,7 +461,7 @@ export function CreativeWorkspace({
         onSelectType={handleSelectType}
         onSelectDocument={selectDocument}
         onCreateDocument={createDocument}
-        onSave={saveDocument}
+        onSave={() => startTransition(() => { void saveDocument(); })}
         onToggleBrief={() => setBriefPanelOpen(!briefPanelOpen)}
         onRunAi={runAi}
       />
