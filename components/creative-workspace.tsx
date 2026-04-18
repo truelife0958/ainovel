@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/empty-state";
 import { evaluateChapterWriteGuard } from "@/lib/ai/write-guard.js";
 import { parseChapterBriefContent, validateChapterBrief } from "@/lib/projects/brief-format.js";
 import { typeLabel } from "@/lib/utils.js";
+import { computeNextBackoffMs } from "@/components/creative-workspace-autosave.js";
 import { ChapterBriefEditor } from "@/components/workspace/chapter-brief-editor";
 import { BottomBar } from "@/components/bottom-bar";
 import { BottomPanel } from "@/components/ui/bottom-panel";
@@ -78,6 +79,8 @@ export function CreativeWorkspace({
   const [briefPanelOpen, setBriefPanelOpen] = useState(false);
   const [aiRunning, setAiRunning] = useState(false);
   const [autoSaved, setAutoSaved] = useState(false);
+  const [autoSaveFailures, setAutoSaveFailures] = useState(0);
+  const [autoSaveError, setAutoSaveError] = useState<string | null>(null);
   const [downgradeNotice, setDowngradeNotice] = useState("");
   const [isPending, startTransition] = useTransition();
   const isPendingRef = useRef(false);
@@ -179,24 +182,33 @@ export function CreativeWorkspace({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [hasSelectedDocument, selectedType, briefPanelOpen]);
 
-  // Auto-save
+  // Auto-save with exponential backoff
   useEffect(() => {
     if (!chapterDirty || !hasSelectedDocument || isPending || aiRunning) return;
+
+    const delay = autoSaveFailures > 0
+      ? computeNextBackoffMs(autoSaveFailures - 1)
+      : AUTOSAVE_DELAY;
 
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = setTimeout(() => {
       startTransition(async () => {
         const doc = await saveRef.current({ silent: true });
         if (doc) {
+          setAutoSaveFailures(0);
+          setAutoSaveError(null);
           setAutoSaved(true);
           if (autoSavedTimerRef.current) clearTimeout(autoSavedTimerRef.current);
           autoSavedTimerRef.current = setTimeout(() => setAutoSaved(false), 2000);
+        } else {
+          setAutoSaveFailures(n => n + 1);
+          setAutoSaveError("自动保存失败，将自动重试");
         }
       });
-    }, AUTOSAVE_DELAY);
+    }, delay);
 
     return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
-  }, [chapterDirty, hasSelectedDocument, isPending, aiRunning]);
+  }, [chapterDirty, hasSelectedDocument, isPending, aiRunning, autoSaveFailures]);
 
   /* ===== Actions ===== */
 
@@ -421,6 +433,24 @@ export function CreativeWorkspace({
         )}
         {message && !aiRunning && <p className={`creation-editor-message ${messageClass}`}>{message}</p>}
       </div>
+
+      {/* Auto-save retry toast (outside editor area so it stays visible) */}
+      {autoSaveError && (
+        <div className="autosave-error-toast" role="alert">
+          <span>{autoSaveError}</span>
+          <button
+            type="button"
+            className="autosave-retry-btn"
+            onClick={() => {
+              setAutoSaveError(null);
+              startTransition(async () => {
+                const doc = await saveRef.current({ silent: false });
+                if (doc) setAutoSaveFailures(0);
+              });
+            }}
+          >立即重试</button>
+        </div>
+      )}
 
       {/* Brief Bottom Panel (chapters only) */}
       {selectedType === "chapter" && (

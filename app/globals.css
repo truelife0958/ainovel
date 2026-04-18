@@ -2069,3 +2069,32 @@ textarea {
   border: 1px solid var(--warning);
   font-size: 13px;
 }
+
+/* ===== Auto-save Error Toast (T1.1) ===== */
+.autosave-error-toast {
+  position: fixed;
+  bottom: 92px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--error-bg);
+  color: var(--error-text);
+  border: 1px solid var(--error-border);
+  box-shadow: var(--shadow);
+  z-index: 50;
+}
+
+.autosave-retry-btn {
+  background: transparent;
+  border: 1px solid var(--error-text);
+  color: var(--error-text);
+  padding: 4px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.autosave-retry-btn:hover { background: rgba(248, 113, 113, 0.1); }
