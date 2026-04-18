@@ -7,7 +7,7 @@
     "dev": "node ./node_modules/next/dist/bin/next dev",
     "build": "node ./node_modules/next/dist/bin/next build",
     "start": "node ./node_modules/next/dist/bin/next start",
-    "test": "node --import=./tests/setup/dom.mjs --test tests/**/*.test.mjs",
+    "test": "node --import=./tests/setup/dom.mjs --test tests/*.test.mjs tests/**/*.test.mjs",
     "test:e2e": "node ./scripts/run-playwright-e2e.mjs",
     "test:e2e:headed": "node ./scripts/run-playwright-e2e.mjs --headed",
     "test:e2e:live-ai": "node ./scripts/run-playwright-e2e.mjs tests/e2e/live-ai.spec.mjs"
