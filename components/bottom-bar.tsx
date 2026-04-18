@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Dropdown } from "@/components/ui/dropdown";
+import { AiStatusLine } from "@/components/ai-status-line";
 import { typeLabel } from "@/lib/utils.js";
 import type { ProjectDocumentMeta, ProjectDocumentKind } from "@/types/documents";
 
@@ -21,6 +22,7 @@ type BottomBarProps = {
   aiRunning: boolean;
   disabled: boolean;
   briefOpen: boolean;
+  lastCall?: { latencyMs: number; usage: unknown } | null;
   onSelectType: (type: ProjectDocumentKind) => void;
   onSelectDocument: (type: ProjectDocumentKind, fileName: string) => void;
   onCreateDocument: (kind: ProjectDocumentKind, title: string) => void;
@@ -45,6 +47,7 @@ export function BottomBar({
   aiRunning,
   disabled,
   briefOpen,
+  lastCall,
   onSelectType,
   onSelectDocument,
   onCreateDocument,
@@ -207,6 +210,7 @@ export function BottomBar({
         <span className={`bottom-bar-wordcount${dirty ? " dirty" : ""}`}>
           {wordCount} 字{chapterTarget > 0 && selectedType === "chapter" ? ` / ${chapterTarget}` : ""}{dirty ? " · 未保存" : ""}
         </span>
+        <AiStatusLine lastCall={lastCall ?? null} />
       </div>
 
       <button

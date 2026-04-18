@@ -2173,3 +2173,12 @@ textarea {
 }
 .ai-cancel-btn:hover { background: rgba(0, 0, 0, 0.06); }
 [data-theme="dark"] .ai-cancel-btn:hover { background: rgba(255, 255, 255, 0.08); }
+
+/* ===== AI Status Line (T2.4) ===== */
+.ai-status-line {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 0 8px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

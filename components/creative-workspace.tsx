@@ -83,6 +83,7 @@ export function CreativeWorkspace({
   const [autoSaveFailures, setAutoSaveFailures] = useState(0);
   const [autoSaveError, setAutoSaveError] = useState<string | null>(null);
   const [downgradeNotice, setDowngradeNotice] = useState("");
+  const [lastCall, setLastCall] = useState<{ latencyMs: number; usage: unknown } | null>(null);
   const [isPending, startTransition] = useTransition();
   const isPendingRef = useRef(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -353,6 +354,7 @@ export function CreativeWorkspace({
         if (signal.aborted) return;
         const payload = await res.json();
         if (!res.ok || !payload.ok) { setMessage(payload.error || "AI 执行失败"); return; }
+        if (payload.data.lastCall) setLastCall(payload.data.lastCall);
         if (payload.data.downgraded) {
           setDowngradeNotice("原稿超 30KB，本次使用替换模式生成。");
         }
@@ -519,6 +521,7 @@ export function CreativeWorkspace({
         aiRunning={aiRunning}
         disabled={isPending}
         briefOpen={briefPanelOpen}
+        lastCall={lastCall}
         onSelectType={handleSelectType}
         onSelectDocument={selectDocument}
         onCreateDocument={createDocument}
