@@ -2275,3 +2275,33 @@ textarea {
   outline: 2px solid var(--accent);
   outline-offset: -1px;
 }
+
+/* ===== Export Menu (T2.7) ===== */
+.export-menu-wrap { position: relative; }
+.export-menu-popup {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 220px;
+  padding: 4px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-strong);
+  z-index: 20;
+}
+.export-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background var(--transition-fast);
+}
+.export-menu-item:hover:not(:disabled) { background: var(--accent-soft); }
+.export-menu-item:disabled { color: var(--muted); cursor: not-allowed; }

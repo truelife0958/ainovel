@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ProjectDropdown } from "@/components/project-dropdown";
+import { ExportMenu } from "@/components/export-menu";
 import type { ProjectSummary } from "@/types/project";
 
 type ToolbarProps = {
@@ -112,6 +113,7 @@ export function Toolbar({
               </button>
             </>
           )}
+          <ExportMenu />
         </>
       )}
 
