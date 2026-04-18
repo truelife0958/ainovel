@@ -78,6 +78,7 @@ export function CreativeWorkspace({
   const [briefPanelOpen, setBriefPanelOpen] = useState(false);
   const [aiRunning, setAiRunning] = useState(false);
   const [autoSaved, setAutoSaved] = useState(false);
+  const [downgradeNotice, setDowngradeNotice] = useState("");
   const [isPending, startTransition] = useTransition();
   const isPendingRef = useRef(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -96,6 +97,13 @@ export function CreativeWorkspace({
     toastTimerRef.current = setTimeout(() => setToast(""), 3000);
     return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); };
   }, [toast]);
+
+  // Downgrade notice auto-dismiss (5s)
+  useEffect(() => {
+    if (!downgradeNotice) return;
+    const t = setTimeout(() => setDowngradeNotice(""), 5000);
+    return () => clearTimeout(t);
+  }, [downgradeNotice]);
 
   // Sync content on document change
   useEffect(() => { setChapterContent(selectedDocument?.content ?? ""); }, [selectedDocument]);
@@ -317,6 +325,9 @@ export function CreativeWorkspace({
         });
         const payload = await res.json();
         if (!res.ok || !payload.ok) { setMessage(payload.error || "AI 执行失败"); return; }
+        if (payload.data.downgraded) {
+          setDowngradeNotice("原稿超 30KB，本次使用替换模式生成。");
+        }
         if (payload.data.target === "brief") {
           setBrief(payload.data.document);
           setBriefContent(payload.data.document.content);
@@ -403,6 +414,9 @@ export function CreativeWorkspace({
             <span className="ai-spinner" />
             <span>AI 正在处理中，请稍候…</span>
           </div>
+        )}
+        {downgradeNotice && !aiRunning && (
+          <div className="downgrade-notice" role="status">{downgradeNotice}</div>
         )}
         {message && !aiRunning && <p className={`creation-editor-message ${messageClass}`}>{message}</p>}
       </div>

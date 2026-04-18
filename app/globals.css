@@ -2058,3 +2058,14 @@ textarea {
 [data-theme="dark"] .welcome-brand-icon {
   box-shadow: 0 12px 32px rgba(212, 112, 74, 0.25);
 }
+
+/* ===== Downgrade Notice (T1.5b) ===== */
+.downgrade-notice {
+  margin: 8px 16px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border: 1px solid var(--warning);
+  font-size: 13px;
+}
