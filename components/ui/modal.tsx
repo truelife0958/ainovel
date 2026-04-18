@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { queryFocusableElements } from "@/lib/ui/focus-trap.js";
 
 type ModalVariant = "standard" | "wide" | "compact";
 
@@ -23,13 +24,28 @@ export function Modal({ open, onClose, title, eyebrow, variant = "standard", chi
     document.body.dataset.overlayCount = String(count + 1);
     document.body.style.overflow = "hidden";
 
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+    const previousFocus = document.activeElement as HTMLElement | null;
+
+    // Move focus to the first interactive element (not the dialog itself)
+    queueMicrotask(() => {
+      const items = queryFocusableElements(dialogRef.current);
+      if (items.length > 0) items[0].focus();
+      else dialogRef.current?.focus();
+    });
+
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") { onClose(); return; }
+      if (event.key !== "Tab") return;
+      const items = queryFocusableElements(dialogRef.current);
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && active === first) { last.focus(); event.preventDefault(); }
+      else if (!event.shiftKey && active === last) { first.focus(); event.preventDefault(); }
     }
 
-    document.addEventListener("keydown", handleEscape);
-
-    dialogRef.current?.focus();
+    document.addEventListener("keydown", handleKey);
 
     return () => {
       const next = parseInt(document.body.dataset.overlayCount || "1", 10) - 1;
@@ -38,7 +54,9 @@ export function Modal({ open, onClose, title, eyebrow, variant = "standard", chi
         document.body.style.overflow = "";
         delete document.body.dataset.overlayCount;
       }
-      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("keydown", handleKey);
+      // Return focus to the element that was focused before the modal opened.
+      queueMicrotask(() => { previousFocus?.focus?.(); });
     };
   }, [open, onClose]);
 
