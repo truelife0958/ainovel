@@ -74,6 +74,7 @@ export async function POST(request: Request) {
       mode: body.mode,
       userRequest: sanitizedUserRequest,
       applyMode: body.applyMode,
+      signal: request.signal,
     });
 
     const maxReturnLength = 100000;
@@ -87,6 +88,12 @@ export async function POST(request: Request) {
       data: truncatedResult,
     });
   } catch (error) {
+    if ((error as Error)?.name === "AbortError" || request.signal.aborted) {
+      return NextResponse.json(
+        { ok: false, error: "Request cancelled" },
+        { status: 499 },
+      );
+    }
     return NextResponse.json(
       {
         ok: false,

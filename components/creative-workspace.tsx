@@ -90,6 +90,7 @@ export function CreativeWorkspace({
   const autoSavedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const selectFetcher = useAbortableFetch();
+  const aiAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     isPendingRef.current = isPending;
@@ -332,6 +333,8 @@ export function CreativeWorkspace({
     }
     setMessage("");
     setAiRunning(true);
+    aiAbortRef.current = new AbortController();
+    const signal = aiAbortRef.current.signal;
     startTransition(async () => {
       try {
         const kind = mode === "outline_plan" ? selectedType : "chapter";
@@ -345,7 +348,9 @@ export function CreativeWorkspace({
             userRequest: "",
             applyMode: mode === "chapter_write" ? "append" : "replace",
           }),
+          signal,
         });
+        if (signal.aborted) return;
         const payload = await res.json();
         if (!res.ok || !payload.ok) { setMessage(payload.error || "AI 执行失败"); return; }
         if (payload.data.downgraded) {
@@ -365,9 +370,19 @@ export function CreativeWorkspace({
         }
         setWriteGuardArmed(false);
         setToast("AI 操作已完成");
-      } catch { setMessage("网络错误，AI 操作失败"); }
-      finally { setAiRunning(false); }
+      } catch (err) {
+        if ((err as Error)?.name === "AbortError") { setToast("已取消"); return; }
+        setMessage("网络错误，AI 操作失败");
+      }
+      finally {
+        setAiRunning(false);
+        aiAbortRef.current = null;
+      }
     });
+  }
+
+  function cancelAi() {
+    aiAbortRef.current?.abort();
   }
 
   /* ===== Render ===== */
@@ -436,6 +451,12 @@ export function CreativeWorkspace({
           <div className="ai-loading-overlay">
             <span className="ai-spinner" />
             <span>AI 正在处理中，请稍候…</span>
+            <button
+              type="button"
+              className="ai-cancel-btn"
+              onClick={cancelAi}
+              aria-label="取消 AI 操作"
+            >取消</button>
           </div>
         )}
         {downgradeNotice && !aiRunning && (

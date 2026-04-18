@@ -1,6 +1,12 @@
 ﻿import type { DocumentAiApplyMode, DocumentAiMode, DocumentAiResult, ProviderInvocation } from "@/types/ai";
 import type { ProjectDocumentKind } from "@/types/documents";
 
+export function applyResult(
+  originalContent: string | null | undefined,
+  generatedText: string | null | undefined,
+  applyMode: DocumentAiApplyMode,
+): { content: string; downgraded: boolean };
+
 export function runDocumentAiAction(
   input: {
     projectRoot: string;
@@ -10,9 +16,12 @@ export function runDocumentAiAction(
     mode: DocumentAiMode;
     userRequest?: string;
     applyMode: DocumentAiApplyMode;
+    signal?: AbortSignal;
   },
   dependencies?: {
-    invokeModel?: (payload: ProviderInvocation) => Promise<string>;
+    invokeModel?: (
+      payload: ProviderInvocation,
+    ) => Promise<string | { text: string; usage: unknown; latencyMs: number }>;
     buildContext?: (
       projectRoot: string,
       fileName: string,

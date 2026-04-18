@@ -2,7 +2,16 @@ import type { ChapterBrief, ChapterBriefValidation } from "@/types/briefs";
 import type { ProjectDocument, ProjectDocumentMeta } from "@/types/documents";
 import type { ModelRole, ProviderId } from "@/types/settings";
 
-export type DocumentAiMode = "outline_plan" | "chapter_plan" | "chapter_write";
+export type DocumentAiMode =
+  | "outline_plan"
+  | "chapter_plan"
+  | "chapter_write"
+  | "setting_worldview"
+  | "setting_protagonist"
+  | "setting_antagonist"
+  | "setting_synopsis"
+  | "setting_volume"
+  | "reference_analysis";
 export type DocumentAiApplyMode = "replace" | "append";
 
 export type ProviderInvocation = {
@@ -11,6 +20,12 @@ export type ProviderInvocation = {
   role: ModelRole;
   instructions: string;
   prompt: string;
+  signal?: AbortSignal;
+};
+
+export type AiCallMetrics = {
+  latencyMs: number;
+  usage: unknown | null;
 };
 
 export type DocumentAiResult = {
@@ -22,4 +37,7 @@ export type DocumentAiResult = {
   document: ChapterBrief | ProjectDocument;
   documents: ProjectDocumentMeta[];
   briefValidation: ChapterBriefValidation | null;
+  downgraded: boolean;
+  applyModeUsed: DocumentAiApplyMode;
+  lastCall: AiCallMetrics;
 };

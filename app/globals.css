@@ -2158,3 +2158,18 @@ textarea {
   vertical-align: -2px;
 }
 @keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* ===== AI Cancel Button (T2.3) ===== */
+.ai-cancel-btn {
+  margin-left: 16px;
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background var(--transition-fast);
+}
+.ai-cancel-btn:hover { background: rgba(0, 0, 0, 0.06); }
+[data-theme="dark"] .ai-cancel-btn:hover { background: rgba(255, 255, 255, 0.08); }
