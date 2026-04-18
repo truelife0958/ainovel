@@ -2259,3 +2259,19 @@ textarea {
   background: var(--panel);
   color: var(--ink);
 }
+
+/* ===== Chapter Search (T2.6) ===== */
+.chapter-search-input {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+.chapter-search-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
