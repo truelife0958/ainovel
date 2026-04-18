@@ -2098,3 +2098,49 @@ textarea {
 }
 
 .autosave-retry-btn:hover { background: rgba(248, 113, 113, 0.1); }
+
+/* ===== Error Boundary Fallback (T1.8) ===== */
+.error-boundary-fallback {
+  margin: 40px auto;
+  max-width: 520px;
+  padding: 24px;
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  border: 1px solid var(--error-border);
+  text-align: center;
+}
+.error-boundary-fallback h3 {
+  margin: 0 0 12px;
+  color: var(--error-text);
+}
+.error-boundary-fallback p {
+  margin: 0 0 16px;
+  color: var(--muted);
+}
+.error-boundary-fallback code {
+  display: block;
+  margin-top: 12px;
+  padding: 8px;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  user-select: all;
+  word-break: break-all;
+}
+.error-boundary-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 12px;
+}
+.error-boundary-actions button {
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-strong);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.error-boundary-actions button:hover { background: var(--accent-soft); }
