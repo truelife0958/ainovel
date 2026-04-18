@@ -8,6 +8,7 @@ import { evaluateChapterWriteGuard } from "@/lib/ai/write-guard.js";
 import { parseChapterBriefContent, validateChapterBrief } from "@/lib/projects/brief-format.js";
 import { typeLabel } from "@/lib/utils.js";
 import { computeNextBackoffMs } from "@/components/creative-workspace-autosave.js";
+import { useAbortableFetch, isAbortError } from "@/lib/api/use-abortable-fetch";
 import { ChapterBriefEditor } from "@/components/workspace/chapter-brief-editor";
 import { BottomBar } from "@/components/bottom-bar";
 import { BottomPanel } from "@/components/ui/bottom-panel";
@@ -88,6 +89,7 @@ export function CreativeWorkspace({
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const autoSavedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const selectFetcher = useAbortableFetch();
 
   useEffect(() => {
     isPendingRef.current = isPending;
@@ -232,12 +234,13 @@ export function CreativeWorkspace({
     setMessage("");
 
     if (type === "chapter") {
+      const signal = selectFetcher.beginGeneration();
       startTransition(async () => {
         try {
           const [docRes, briefRes, ctxRes] = await Promise.all([
-            fetch(`/api/projects/current/documents?kind=chapter&file=${encodeURIComponent(fileName)}`),
-            fetch(`/api/projects/current/briefs?file=${encodeURIComponent(fileName)}`),
-            fetch(`/api/projects/current/context?file=${encodeURIComponent(fileName)}`),
+            fetch(`/api/projects/current/documents?kind=chapter&file=${encodeURIComponent(fileName)}`, { signal }),
+            fetch(`/api/projects/current/briefs?file=${encodeURIComponent(fileName)}`, { signal }),
+            fetch(`/api/projects/current/context?file=${encodeURIComponent(fileName)}`, { signal }),
           ]);
           const docPayload = await docRes.json();
           const briefPayload = await briefRes.json();
@@ -246,17 +249,24 @@ export function CreativeWorkspace({
           setSelectedDocument(docPayload.data);
           setBrief(briefRes.ok && briefPayload.ok ? briefPayload.data : null);
           setContext(ctxRes.ok && ctxPayload.ok ? ctxPayload.data : null);
-        } catch { setMessage("网络错误，切换章节失败"); }
+        } catch (err) {
+          if (isAbortError(err)) return;
+          setMessage("网络错误，切换章节失败");
+        }
       });
     } else {
+      const signal = selectFetcher.beginGeneration();
       startTransition(async () => {
         try {
-          const res = await fetch(`/api/projects/current/documents?kind=${type}&file=${encodeURIComponent(fileName)}`);
+          const res = await fetch(`/api/projects/current/documents?kind=${type}&file=${encodeURIComponent(fileName)}`, { signal });
           const payload = await res.json();
           if (!res.ok || !payload.ok) { setMessage(payload.error || `读取${typeLabel(type)}失败`); return; }
           setSelectedDocument(payload.data);
           setAssetContent(payload.data.content);
-        } catch { setMessage(`网络错误，读取${typeLabel(type)}失败`); }
+        } catch (err) {
+          if (isAbortError(err)) return;
+          setMessage(`网络错误，读取${typeLabel(type)}失败`);
+        }
       });
     }
   }
