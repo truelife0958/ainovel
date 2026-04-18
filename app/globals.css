@@ -2305,3 +2305,14 @@ textarea {
 }
 .export-menu-item:hover:not(:disabled) { background: var(--accent-soft); }
 .export-menu-item:disabled { color: var(--muted); cursor: not-allowed; }
+
+/* ===== Word-count Ring (T2.8) ===== */
+.word-count-ring {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.word-count-ring svg circle {
+  transition: stroke-dashoffset var(--transition-normal), stroke var(--transition-normal);
+}

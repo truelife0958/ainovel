@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { EditorToolbar, type EditorViewMode } from "@/components/editor-toolbar";
 import { EmptyState } from "@/components/empty-state";
 import { MarkdownPreview } from "@/components/markdown-preview";
+import { WordCountRing } from "@/components/word-count-ring";
 import { evaluateChapterWriteGuard } from "@/lib/ai/write-guard.js";
 import { parseChapterBriefContent, validateChapterBrief } from "@/lib/projects/brief-format.js";
 import { typeLabel } from "@/lib/utils.js";
@@ -415,6 +416,12 @@ export function CreativeWorkspace({
           <>
             <div className="creation-editor-meta">
               <h3 className="creation-editor-title">{selectedDocument?.title ?? ""}</h3>
+              {selectedType === "chapter" && (project?.targetWords ?? 0) > 0 && (project?.targetChapters ?? 0) > 0 && (
+                <WordCountRing
+                  current={wordCount}
+                  target={Math.round((project?.targetWords ?? 0) / Math.max(1, project?.targetChapters ?? 1))}
+                />
+              )}
               <span className="creation-editor-hint">
                 Ctrl+S 保存 {selectedType === "chapter" ? "· Ctrl+B 任务书" : ""}
               </span>
