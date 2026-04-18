@@ -279,7 +279,12 @@ export function ConnectionWizard({ initialConfig, onDirtyChange }: ConnectionWiz
             disabled={isTesting}
             onClick={handleTest}
           >
-            {isTesting ? "测试中..." : "测试连接"}
+            {isTesting ? (
+              <>
+                <span className="btn-spinner" aria-hidden="true" />
+                测试中…
+              </>
+            ) : "测试连接"}
           </button>
           <button
             type="submit"
@@ -291,7 +296,7 @@ export function ConnectionWizard({ initialConfig, onDirtyChange }: ConnectionWiz
         </div>
 
         {testResult && (
-          <p className={`connection-test-result ${testResult.ok ? "success" : "error"}`}>
+          <p className={`connection-test-result ${testResult.ok ? "success" : "error"}`} role="status" aria-live="polite">
             {testResult.message}
           </p>
         )}

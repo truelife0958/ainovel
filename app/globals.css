@@ -2144,3 +2144,17 @@ textarea {
   transition: background var(--transition-fast);
 }
 .error-boundary-actions button:hover { background: var(--accent-soft); }
+
+/* ===== Button Spinner (T1.10) ===== */
+.btn-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.8s linear infinite;
+  vertical-align: -2px;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
