@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
-import { EditorToolbar } from "@/components/editor-toolbar";
+import { EditorToolbar, type EditorViewMode } from "@/components/editor-toolbar";
 import { EmptyState } from "@/components/empty-state";
+import { MarkdownPreview } from "@/components/markdown-preview";
 import { evaluateChapterWriteGuard } from "@/lib/ai/write-guard.js";
 import { parseChapterBriefContent, validateChapterBrief } from "@/lib/projects/brief-format.js";
 import { typeLabel } from "@/lib/utils.js";
@@ -84,6 +85,7 @@ export function CreativeWorkspace({
   const [autoSaveError, setAutoSaveError] = useState<string | null>(null);
   const [downgradeNotice, setDowngradeNotice] = useState("");
   const [lastCall, setLastCall] = useState<{ latencyMs: number; usage: unknown } | null>(null);
+  const [viewMode, setViewMode] = useState<EditorViewMode>("edit");
   const [isPending, startTransition] = useTransition();
   const isPendingRef = useRef(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -430,19 +432,28 @@ export function CreativeWorkspace({
                 else setAssetContent(v);
               }}
               disabled={isPending || aiRunning}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
             />
-            <textarea
-              ref={textareaRef}
-              value={editorContent}
-              onChange={(e) => {
-                if (selectedType === "chapter") setChapterContent(e.target.value);
-                else setAssetContent(e.target.value);
-              }}
-              onKeyDown={handleEditorKeyDown}
-              spellCheck={false}
-              aria-label={`${typeLabel(selectedType)}编辑区`}
-              placeholder={`在此开始${typeLabel(selectedType)}写作…`}
-            />
+            <div className={`editor-body view-${viewMode}`}>
+              {(viewMode === "edit" || viewMode === "split") && (
+                <textarea
+                  ref={textareaRef}
+                  value={editorContent}
+                  onChange={(e) => {
+                    if (selectedType === "chapter") setChapterContent(e.target.value);
+                    else setAssetContent(e.target.value);
+                  }}
+                  onKeyDown={handleEditorKeyDown}
+                  spellCheck={false}
+                  aria-label={`${typeLabel(selectedType)}编辑区`}
+                  placeholder={`在此开始${typeLabel(selectedType)}写作…`}
+                />
+              )}
+              {(viewMode === "split" || viewMode === "preview") && (
+                <MarkdownPreview content={editorContent} />
+              )}
+            </div>
           </>
         ) : (
           <EmptyState message={emptyMessage} />

@@ -2,10 +2,14 @@
 
 import { type RefObject } from "react";
 
+export type EditorViewMode = "edit" | "split" | "preview";
+
 type EditorToolbarProps = {
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   onChange: (value: string) => void;
   disabled?: boolean;
+  viewMode?: EditorViewMode;
+  onViewModeChange?: (mode: EditorViewMode) => void;
 };
 
 type FormatAction =
@@ -91,7 +95,7 @@ const BUTTONS: (ToolbarButton | "divider")[] = [
   { key: "divider", label: "\u2014", title: "分割线" },
 ];
 
-export function EditorToolbar({ textareaRef, onChange, disabled }: EditorToolbarProps) {
+export function EditorToolbar({ textareaRef, onChange, disabled, viewMode, onViewModeChange }: EditorToolbarProps) {
   function handleClick(key: string) {
     const textarea = textareaRef.current;
     if (!textarea || disabled) return;
@@ -120,6 +124,31 @@ export function EditorToolbar({ textareaRef, onChange, disabled }: EditorToolbar
           </button>
         );
       })}
+      {onViewModeChange && (
+        <div className="editor-toolbar-view" role="group" aria-label="视图模式">
+          <button
+            type="button"
+            aria-pressed={viewMode === "edit"}
+            className={`editor-toolbar-view-btn ${viewMode === "edit" ? "active" : ""}`}
+            onClick={() => onViewModeChange("edit")}
+            title="仅编辑"
+          >编辑</button>
+          <button
+            type="button"
+            aria-pressed={viewMode === "split"}
+            className={`editor-toolbar-view-btn ${viewMode === "split" ? "active" : ""}`}
+            onClick={() => onViewModeChange("split")}
+            title="分屏"
+          >分屏</button>
+          <button
+            type="button"
+            aria-pressed={viewMode === "preview"}
+            className={`editor-toolbar-view-btn ${viewMode === "preview" ? "active" : ""}`}
+            onClick={() => onViewModeChange("preview")}
+            title="仅预览"
+          >预览</button>
+        </div>
+      )}
     </div>
   );
 }
