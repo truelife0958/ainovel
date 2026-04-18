@@ -12,11 +12,34 @@ type ModalProps = {
   title: string;
   eyebrow?: string;
   variant?: ModalVariant;
+  /**
+   * Return true when the modal has unsaved changes; the Modal will ask the
+   * user to confirm before invoking `onClose` (overlay click, ESC, close X).
+   */
+  confirmCloseIfDirty?: () => boolean;
   children: ReactNode;
 };
 
-export function Modal({ open, onClose, title, eyebrow, variant = "standard", children }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  eyebrow,
+  variant = "standard",
+  confirmCloseIfDirty,
+  children,
+}: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+
+  function requestClose() {
+    if (confirmCloseIfDirty?.()) {
+      const ok = typeof window !== "undefined" && typeof window.confirm === "function"
+        ? window.confirm("有未保存的更改，确定放弃吗？")
+        : true;
+      if (!ok) return;
+    }
+    onClose();
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -34,7 +57,7 @@ export function Modal({ open, onClose, title, eyebrow, variant = "standard", chi
     });
 
     function handleKey(event: KeyboardEvent) {
-      if (event.key === "Escape") { onClose(); return; }
+      if (event.key === "Escape") { requestClose(); return; }
       if (event.key !== "Tab") return;
       const items = queryFocusableElements(dialogRef.current);
       if (items.length === 0) return;
@@ -63,7 +86,7 @@ export function Modal({ open, onClose, title, eyebrow, variant = "standard", chi
   if (!open) return null;
 
   return createPortal(
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={requestClose}>
       <div
         ref={dialogRef}
         className={`modal-dialog ${variant}`}
@@ -81,7 +104,7 @@ export function Modal({ open, onClose, title, eyebrow, variant = "standard", chi
           <button
             type="button"
             className="modal-close"
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="关闭"
           >
             &times;

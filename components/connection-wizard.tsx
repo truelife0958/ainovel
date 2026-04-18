@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, useTransition } from "react";
+import { FormEvent, useEffect, useState, useTransition } from "react";
 
 import {
   buildProviderCardFocus,
@@ -17,6 +17,7 @@ import type {
 
 type ConnectionWizardProps = {
   initialConfig: ProviderConfigSummary;
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
 type ProviderSecretState = Record<ProviderId, string>;
@@ -52,7 +53,7 @@ const costPresetDescriptions: Record<CostPreset, string> = {
   budget: "使用经济模型，适合大量生成",
 };
 
-export function ConnectionWizard({ initialConfig }: ConnectionWizardProps) {
+export function ConnectionWizard({ initialConfig, onDirtyChange }: ConnectionWizardProps) {
   const [config, setConfig] = useState(initialConfig);
   const [secrets, setSecrets] = useState<ProviderSecretState>({ ...emptySecrets });
   const [clearFlags, setClearFlags] = useState<ProviderClearState>({ ...emptyClearFlags });
@@ -62,6 +63,16 @@ export function ConnectionWizard({ initialConfig }: ConnectionWizardProps) {
   const [isPending, startTransition] = useTransition();
   const [isTesting, startTestTransition] = useTransition();
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  // Report dirty state: config diverges from initial, or any secret is set,
+  // or any clear flag is true.
+  useEffect(() => {
+    if (!onDirtyChange) return;
+    const configDirty = JSON.stringify(config) !== JSON.stringify(initialConfig);
+    const secretDirty = providerIds.some((id) => (secrets[id] ?? "").length > 0);
+    const clearDirty = providerIds.some((id) => clearFlags[id]);
+    onDirtyChange(configDirty || secretDirty || clearDirty);
+  }, [config, initialConfig, secrets, clearFlags, onDirtyChange]);
 
   const summaryFocus = buildProviderSettingsSummaryFocus(config);
   const isConnected = config.providers[config.activeProvider]?.hasApiKey;

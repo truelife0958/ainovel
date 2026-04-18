@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Modal } from "@/components/ui/modal";
 import { IdeationForm } from "@/components/ideation-form";
@@ -15,6 +15,7 @@ export function IdeationModal({ open, onClose }: IdeationModalProps) {
   const [ideation, setIdeation] = useState<ProjectIdeation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const dirtyRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
@@ -22,6 +23,7 @@ export function IdeationModal({ open, onClose }: IdeationModalProps) {
     setIdeation(null);
     setLoading(true);
     setError(false);
+    dirtyRef.current = false;
     fetch("/api/projects/current/ideation", { signal: controller.signal })
       .then((r) => r.json())
       .then((payload) => {
@@ -47,7 +49,14 @@ export function IdeationModal({ open, onClose }: IdeationModalProps) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="立项" eyebrow="作品核心" variant="wide">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="立项"
+      eyebrow="作品核心"
+      variant="wide"
+      confirmCloseIfDirty={() => dirtyRef.current}
+    >
       {loading ? (
         <div className="modal-loading">
           <span className="ai-spinner" />{" "}
@@ -59,7 +68,11 @@ export function IdeationModal({ open, onClose }: IdeationModalProps) {
           <button type="button" className="action-button compact" onClick={handleRetry}>重试</button>
         </div>
       ) : ideation ? (
-        <IdeationForm initialIdeation={ideation} onClose={onClose} />
+        <IdeationForm
+          initialIdeation={ideation}
+          onClose={onClose}
+          onDirtyChange={(d) => { dirtyRef.current = d; }}
+        />
       ) : null}
     </Modal>
   );
