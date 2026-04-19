@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 
 import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
 import { sanitizeInput } from "@/lib/api/sanitize";
+import { log } from "@/lib/log.js";
 import {
   listProjectsWithCurrent,
   setCurrentProject,
 } from "@/lib/projects/workspace.js";
 import { getCurrentProjectSummary } from "@/lib/projects/discovery.js";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const project = await getCurrentProjectSummary();
     if (!project) {
@@ -19,6 +20,11 @@ export async function GET() {
     }
     return NextResponse.json({ ok: true, data: project });
   } catch (error) {
+    log.error("route_failed", {
+      route: "GET /api/projects/current",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
     return NextResponse.json(
       {
         ok: false,
@@ -49,6 +55,11 @@ export async function PUT(request: Request) {
       data: { project, workspace },
     });
   } catch (error) {
+    log.error("route_failed", {
+      route: "PUT /api/projects/current",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
     return NextResponse.json(
       {
         ok: false,

@@ -1,5 +1,6 @@
 import { AppShell, WelcomeShell } from "@/components/app-shell";
 import { CreativeWorkspace } from "@/components/creative-workspace";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { getCurrentProjectSummary } from "@/lib/projects/discovery.js";
 import { readProviderConfigSummary, createProviderRuntimeStatus } from "@/lib/settings/provider-config.js";
 import { listProjectDocuments, readProjectDocument } from "@/lib/projects/documents.js";
@@ -29,7 +30,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const assistantStatus = createProviderRuntimeStatus(providerConfig, "writing");
 
   if (!project) {
-    return <WelcomeShell aiAvailable={assistantStatus.available} />;
+    return (
+      <ErrorBoundary>
+        <WelcomeShell aiAvailable={assistantStatus.available} />
+      </ErrorBoundary>
+    );
   }
 
   const [chapterDocs, settingDocs, outlineDocs] = await Promise.all([
@@ -62,19 +67,21 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const initialAssistantRequest = firstValue(params?.assistantRequest);
 
   return (
-    <AppShell project={project} aiAvailable={assistantStatus.available}>
-      <CreativeWorkspace
-        project={project}
-        assistantStatus={assistantStatus}
-        settings={settingDocs}
-        outlines={outlineDocs}
-        chapters={chapterDocs}
-        initialDocument={initialDocument}
-        initialBrief={initialBrief}
-        initialContext={initialContext}
-        initialAssistantRequest={initialAssistantRequest}
-        initialType={requestedType as "chapter" | "setting" | "outline"}
-      />
-    </AppShell>
+    <ErrorBoundary>
+      <AppShell project={project} aiAvailable={assistantStatus.available}>
+        <CreativeWorkspace
+          project={project}
+          assistantStatus={assistantStatus}
+          settings={settingDocs}
+          outlines={outlineDocs}
+          chapters={chapterDocs}
+          initialDocument={initialDocument}
+          initialBrief={initialBrief}
+          initialContext={initialContext}
+          initialAssistantRequest={initialAssistantRequest}
+          initialType={requestedType as "chapter" | "setting" | "outline"}
+        />
+      </AppShell>
+    </ErrorBoundary>
   );
 }

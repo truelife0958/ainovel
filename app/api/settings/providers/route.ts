@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
 import { checkRateLimit, getClientIp } from "@/lib/api/rate-limit";
+import { log } from "@/lib/log.js";
 import {
   readProviderConfigSummary,
   updateProviderConfig,
@@ -40,6 +41,11 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
+    log.error("route_failed", {
+      route: "GET /api/settings/providers",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
     return NextResponse.json(
       { ok: false, error: sanitizeErrorMessage(error, "Unable to load provider settings") },
       { status: 500 },
@@ -85,6 +91,11 @@ export async function PUT(request: Request) {
       data: config,
     });
   } catch (error) {
+    log.error("route_failed", {
+      route: "PUT /api/settings/providers",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
     return NextResponse.json(
       {
         ok: false,

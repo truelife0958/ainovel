@@ -3,6 +3,9 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6.svg)](https://www.typescriptlang.org/)
+[![Tests](https://img.shields.io/badge/tests-137%2B%20passing-brightgreen.svg)](./CHANGELOG.md)
+[![Type-check](https://img.shields.io/badge/tsc-0%20errors-brightgreen.svg)](./CHANGELOG.md)
+[![Polish](https://img.shields.io/badge/polish-tier%203-gold.svg)](./CHANGELOG.md)
 
 基于 Next.js 16 + React 19 的长篇网文 AI 辅助创作系统，支持 200 万字量级连载创作。
 
@@ -35,6 +38,16 @@ npm run test:e2e     # E2E 测试 (Playwright)
 - **专注模式** — 隐藏工具栏，沉浸式写作体验
 - **自动保存** — 30 秒自动保存，防止意外丢失
 - **键盘快捷键** — Ctrl+S 保存、Ctrl+B 任务书面板
+
+## 质量基线
+
+- **测试** — 137+ unit / component / E2E，`npm test` 与 `npm run test:e2e` 全绿
+- **类型** — `npx tsc --noEmit` 0 错误
+- **构建** — 15 routes + middleware, zero runtime deps
+- **架构** — 见 [ARCHITECTURE.md](./ARCHITECTURE.md)
+- **贡献** — 见 [CONTRIBUTING.md](./CONTRIBUTING.md)
+- **决策记录** — [`docs/adr/`](./docs/adr/) 下 5 份 ADR
+- **打磨过程** — 见 [CHANGELOG](./CHANGELOG.md) 2026-04-19 节（Tier 1/2/3）
 
 ## 技术架构
 

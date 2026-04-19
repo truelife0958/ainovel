@@ -1,0 +1,58 @@
+import { NextResponse } from "next/server";
+import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
+import { sanitizeInput } from "@/lib/api/sanitize";
+import { log } from "@/lib/log.js";
+import { requireProjectRoot } from "@/lib/projects/discovery.js";
+import { listProjectDocuments, readProjectDocument } from "@/lib/projects/documents.js";
+import { combineChaptersAsTxt, safeFileName } from "@/lib/projects/export.js";
+
+export async function GET(request: Request) {
+  try {
+    const projectRoot = await requireProjectRoot();
+    const url = new URL(request.url);
+    const format = url.searchParams.get("format");
+    const file = sanitizeInput(url.searchParams.get("file") || "", 200);
+
+    if (format === "md") {
+      if (!file) throw new Error("file query param is required for format=md");
+      const doc = await readProjectDocument(projectRoot, "chapter", file);
+      return new NextResponse(doc.content, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/markdown; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${safeFileName(doc.fileName)}"`,
+        },
+      });
+    }
+
+    if (format === "txt-all") {
+      const metas = await listProjectDocuments(projectRoot, "chapter");
+      const chapters = await Promise.all(
+        metas.map(async (m) => {
+          const d = await readProjectDocument(projectRoot, "chapter", m.fileName);
+          return { title: d.title, content: d.content };
+        }),
+      );
+      const body = combineChaptersAsTxt(chapters);
+      return new NextResponse(body, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Content-Disposition": `attachment; filename="export-${Date.now()}.txt"`,
+        },
+      });
+    }
+
+    throw new Error("Unsupported export format. Use format=md&file=... or format=txt-all.");
+  } catch (error) {
+    log.error("route_failed", {
+      route: "GET /api/projects/current/export",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
+    return NextResponse.json(
+      { ok: false, error: sanitizeErrorMessage(error, "Unable to export") },
+      { status: 400 },
+    );
+  }
+}

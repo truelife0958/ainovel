@@ -2,14 +2,20 @@ import { NextResponse } from "next/server";
 
 import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
 import { sanitizeInput } from "@/lib/api/sanitize";
+import { log } from "@/lib/log.js";
 import { readProjectIdeation, updateProjectIdeation } from "@/lib/projects/state.js";
 import { requireProjectRoot } from "@/lib/projects/discovery.js";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const ideation = await readProjectIdeation(await requireProjectRoot());
     return NextResponse.json({ ok: true, data: ideation });
   } catch (error) {
+    log.error("route_failed", {
+      route: "GET /api/projects/current/ideation",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
     return NextResponse.json(
       {
         ok: false,
@@ -42,6 +48,11 @@ export async function PUT(request: Request) {
     const ideation = await updateProjectIdeation(await requireProjectRoot(), sanitizedPatch);
     return NextResponse.json({ ok: true, data: ideation });
   } catch (error) {
+    log.error("route_failed", {
+      route: "PUT /api/projects/current/ideation",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
     return NextResponse.json(
       {
         ok: false,

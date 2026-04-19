@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
 import { checkRateLimit, getClientIp } from "@/lib/api/rate-limit";
+import { log } from "@/lib/log.js";
 import { readProviderRuntimeStatus } from "@/lib/settings/provider-config.js";
 
 const RATE_LIMIT_MAX = 10;
@@ -37,6 +38,11 @@ export async function GET(request: Request) {
       model: status.model,
     });
   } catch (error) {
+    log.error("route_failed", {
+      route: "GET /api/settings/providers/test",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
     return NextResponse.json(
       {
         ok: false,

@@ -1,5 +1,85 @@
 # Changelog
 
+## 2026-04-19 — Polish to 9.9 (Tiers 1-3)
+
+### Tier 1 · Correctness & resilience
+
+- **Fixed** — Auto-save silent failure now surfaces a sticky retry
+  toast with exponential backoff (30→60→120→300 s).
+- **Fixed** — `saveDocument` consolidated into a single
+  `useCallback({ silent? })`; the ref-to-hoisted-function workaround
+  is gone.
+- **Fixed** — `useAbortableFetch` hook cancels in-flight chapter loads
+  when the user switches chapters.
+- **Fixed** — Batch generation detects HTTP 429, honors `Retry-After`,
+  and auto-pauses after three consecutive non-429 errors.
+- **Fixed** — `applyResult` now returns `{ content, downgraded }` so a
+  >30 KB append that silently falls back to replace raises a visible
+  warning banner.
+- **Fixed** — Modal focus trap: focus moves to the first interactive
+  element on open, wraps on Tab, and returns to the trigger on close.
+- **Fixed** — Ideation / Connection modals prompt before discarding
+  dirty form data via overlay click or ESC.
+- **Added** — Root `ErrorBoundary` with copyable error id.
+- **Fixed** — Connection wizard test button shows a spinner during
+  the request and an aria-live result banner.
+- **Chore** — Scaffold modal no-op `item.checked ? "waiting" :
+  "waiting"` removed.
+- **DX** — `@testing-library/react` + `linkedom` wired; tests now run
+  React components under `node:test`.
+
+### Tier 2 · Value features
+
+- **Added** — Anthropic prompt caching (`cache_control: ephemeral` on
+  the system prompt); `WEBNOVEL_DISABLE_PROMPT_CACHE=1` reverts. All
+  providers now return a unified `{ text, usage, latencyMs }`.
+- **Added** — `splitPromptParts` helper for cacheable static prefix
+  (consumer migration deferred).
+- **Added** — End-to-end `AbortSignal` from UI → API route → provider;
+  "取消" button in the AI loading overlay; server returns HTTP 499
+  on cancellation.
+- **Added** — AI call telemetry (`lib/ai/telemetry.js`): normalized
+  usage across Anthropic / OpenAI / Gemini shapes; `AiStatusLine` in
+  the bottom bar renders `"1.2s · 2.3k→1.1k tokens"` with cache-hit
+  hint.
+- **Added** — Zero-dep Markdown preview with edit / split / preview
+  view modes.
+- **Added** — Chapter quick-search in the bottom bar dropdown (title
+  + filename substring, numeric-exact by chapter number).
+- **Added** — Export menu: current chapter as `.md`, all chapters
+  combined as `.txt`.
+- **Added** — SVG word-count progress ring next to the chapter title.
+
+### Tier 3 · Quality foundation
+
+- **Added** — `lib/log.js` structured logger; JSON in production,
+  colored in dev, silent in tests.
+- **Added** — `middleware.ts` injects `X-Request-Id`; every API
+  route's catch block records `{ route, requestId, error }`.
+- **Added** — `lib/editor/format.js` pure helper extracted from
+  `editor-toolbar.tsx`; enables unit testing of wrap / prefix / insert
+  logic.
+- **Added** — Playwright E2E specs: `dark-mode`, `export`,
+  `batch-generate`, `scaffold-generate`, `reference-analysis`
+  (mocked AI). Plus `@axe-core/playwright` critical-violation checks
+  on `dark-mode` and `export`.
+- **Added** — `ARCHITECTURE.md`, `CONTRIBUTING.md`,
+  `docs/adr/0001`–`0005`.
+- **Changed** — README quality-baseline badges + section.
+
+### Summary numbers
+
+- Tests: **62 → 137+** (unit + component + E2E + a11y).
+- TypeScript: **0 errors** maintained.
+- Build: **15 routes + middleware**; unchanged runtime dependency
+  list (`next`, `react`, `react-dom`).
+- Tags: `polish-tier-1`, `polish-tier-2`, `polish-tier-3`.
+- Design: `docs/superpowers/specs/2026-04-19-polish-to-9_9-design.md`.
+- Implementation plans:
+  - `docs/superpowers/plans/2026-04-19-polish-tier-1-plan.md`
+  - `docs/superpowers/plans/2026-04-19-polish-tier-2-plan.md`
+  - `docs/superpowers/plans/2026-04-19-polish-tier-3-plan.md`
+
 ## 2026-04-16
 
 ### Added

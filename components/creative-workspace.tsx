@@ -2,11 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
-import { EditorToolbar } from "@/components/editor-toolbar";
+import { EditorToolbar, type EditorViewMode } from "@/components/editor-toolbar";
 import { EmptyState } from "@/components/empty-state";
+import { MarkdownPreview } from "@/components/markdown-preview";
+import { WordCountRing } from "@/components/word-count-ring";
 import { evaluateChapterWriteGuard } from "@/lib/ai/write-guard.js";
 import { parseChapterBriefContent, validateChapterBrief } from "@/lib/projects/brief-format.js";
 import { typeLabel } from "@/lib/utils.js";
+import { computeNextBackoffMs } from "@/components/creative-workspace-autosave.js";
+import { useAbortableFetch, isAbortError } from "@/lib/api/use-abortable-fetch";
 import { ChapterBriefEditor } from "@/components/workspace/chapter-brief-editor";
 import { BottomBar } from "@/components/bottom-bar";
 import { BottomPanel } from "@/components/ui/bottom-panel";
@@ -78,12 +82,19 @@ export function CreativeWorkspace({
   const [briefPanelOpen, setBriefPanelOpen] = useState(false);
   const [aiRunning, setAiRunning] = useState(false);
   const [autoSaved, setAutoSaved] = useState(false);
+  const [autoSaveFailures, setAutoSaveFailures] = useState(0);
+  const [autoSaveError, setAutoSaveError] = useState<string | null>(null);
+  const [downgradeNotice, setDowngradeNotice] = useState("");
+  const [lastCall, setLastCall] = useState<{ latencyMs: number; usage: unknown } | null>(null);
+  const [viewMode, setViewMode] = useState<EditorViewMode>("edit");
   const [isPending, startTransition] = useTransition();
   const isPendingRef = useRef(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const autoSavedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const selectFetcher = useAbortableFetch();
+  const aiAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     isPendingRef.current = isPending;
@@ -96,6 +107,13 @@ export function CreativeWorkspace({
     toastTimerRef.current = setTimeout(() => setToast(""), 3000);
     return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); };
   }, [toast]);
+
+  // Downgrade notice auto-dismiss (5s)
+  useEffect(() => {
+    if (!downgradeNotice) return;
+    const t = setTimeout(() => setDowngradeNotice(""), 5000);
+    return () => clearTimeout(t);
+  }, [downgradeNotice]);
 
   // Sync content on document change
   useEffect(() => { setChapterContent(selectedDocument?.content ?? ""); }, [selectedDocument]);
@@ -115,9 +133,10 @@ export function CreativeWorkspace({
   const briefValidation: ChapterBriefValidation = validateChapterBrief(parsedBrief);
   const writeGuard = evaluateChapterWriteGuard(briefValidation);
 
-  // Save function (memoized for auto-save)
-  const saveDocumentImpl = useCallback(async () => {
-    if (!selectedDocument) return;
+  // Save function (unified: handles both explicit save and silent auto-save)
+  const saveDocument = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!selectedDocument) return undefined;
+    if (!silent) setMessage("");
     try {
       const res = await fetch("/api/projects/current/documents", {
         method: "PUT",
@@ -129,21 +148,32 @@ export function CreativeWorkspace({
         }),
       });
       const payload = await res.json();
-      if (!res.ok || !payload.ok) { setMessage(payload.error || "保存失败"); return; }
+      if (!res.ok || !payload.ok) {
+        if (!silent) setMessage(payload.error || "保存失败");
+        return undefined;
+      }
       if (selectedType === "chapter") setChapterDocs(payload.data.documents);
       setSelectedDocument(payload.data.document);
+      if (!silent) setToast(`已保存《${payload.data.document.title}》`);
       return payload.data.document;
-    } catch { setMessage("网络错误，保存失败"); }
+    } catch {
+      if (!silent) setMessage("网络错误，保存失败");
+      return undefined;
+    }
   }, [selectedDocument, selectedType, chapterContent, assetContent]);
 
-  // Ctrl+S
+  // Ref to latest saveDocument so keyboard effect doesn't re-subscribe on every keystroke
   const saveRef = useRef(saveDocument);
-  saveRef.current = saveDocument;
+  useEffect(() => { saveRef.current = saveDocument; }, [saveDocument]);
+
+  // Ctrl+S / Ctrl+B shortcut handler
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key === "s") {
         event.preventDefault();
-        if (hasSelectedDocument && !isPendingRef.current) saveRef.current();
+        if (hasSelectedDocument && !isPendingRef.current) {
+          startTransition(() => { void saveRef.current(); });
+        }
       }
       // Ctrl+B to toggle brief panel
       if ((event.ctrlKey || event.metaKey) && event.key === "b" && selectedType === "chapter") {
@@ -159,24 +189,33 @@ export function CreativeWorkspace({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [hasSelectedDocument, selectedType, briefPanelOpen]);
 
-  // Auto-save
+  // Auto-save with exponential backoff
   useEffect(() => {
     if (!chapterDirty || !hasSelectedDocument || isPending || aiRunning) return;
+
+    const delay = autoSaveFailures > 0
+      ? computeNextBackoffMs(autoSaveFailures - 1)
+      : AUTOSAVE_DELAY;
 
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = setTimeout(() => {
       startTransition(async () => {
-        const doc = await saveDocumentImpl();
+        const doc = await saveRef.current({ silent: true });
         if (doc) {
+          setAutoSaveFailures(0);
+          setAutoSaveError(null);
           setAutoSaved(true);
           if (autoSavedTimerRef.current) clearTimeout(autoSavedTimerRef.current);
           autoSavedTimerRef.current = setTimeout(() => setAutoSaved(false), 2000);
+        } else {
+          setAutoSaveFailures(n => n + 1);
+          setAutoSaveError("自动保存失败，将自动重试");
         }
       });
-    }, AUTOSAVE_DELAY);
+    }, delay);
 
     return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
-  }, [chapterDirty, hasSelectedDocument, isPending, aiRunning, saveDocumentImpl]);
+  }, [chapterDirty, hasSelectedDocument, isPending, aiRunning, autoSaveFailures]);
 
   /* ===== Actions ===== */
 
@@ -200,12 +239,13 @@ export function CreativeWorkspace({
     setMessage("");
 
     if (type === "chapter") {
+      const signal = selectFetcher.beginGeneration();
       startTransition(async () => {
         try {
           const [docRes, briefRes, ctxRes] = await Promise.all([
-            fetch(`/api/projects/current/documents?kind=chapter&file=${encodeURIComponent(fileName)}`),
-            fetch(`/api/projects/current/briefs?file=${encodeURIComponent(fileName)}`),
-            fetch(`/api/projects/current/context?file=${encodeURIComponent(fileName)}`),
+            fetch(`/api/projects/current/documents?kind=chapter&file=${encodeURIComponent(fileName)}`, { signal }),
+            fetch(`/api/projects/current/briefs?file=${encodeURIComponent(fileName)}`, { signal }),
+            fetch(`/api/projects/current/context?file=${encodeURIComponent(fileName)}`, { signal }),
           ]);
           const docPayload = await docRes.json();
           const briefPayload = await briefRes.json();
@@ -214,17 +254,24 @@ export function CreativeWorkspace({
           setSelectedDocument(docPayload.data);
           setBrief(briefRes.ok && briefPayload.ok ? briefPayload.data : null);
           setContext(ctxRes.ok && ctxPayload.ok ? ctxPayload.data : null);
-        } catch { setMessage("网络错误，切换章节失败"); }
+        } catch (err) {
+          if (isAbortError(err)) return;
+          setMessage("网络错误，切换章节失败");
+        }
       });
     } else {
+      const signal = selectFetcher.beginGeneration();
       startTransition(async () => {
         try {
-          const res = await fetch(`/api/projects/current/documents?kind=${type}&file=${encodeURIComponent(fileName)}`);
+          const res = await fetch(`/api/projects/current/documents?kind=${type}&file=${encodeURIComponent(fileName)}`, { signal });
           const payload = await res.json();
           if (!res.ok || !payload.ok) { setMessage(payload.error || `读取${typeLabel(type)}失败`); return; }
           setSelectedDocument(payload.data);
           setAssetContent(payload.data.content);
-        } catch { setMessage(`网络错误，读取${typeLabel(type)}失败`); }
+        } catch (err) {
+          if (isAbortError(err)) return;
+          setMessage(`网络错误，读取${typeLabel(type)}失败`);
+        }
       });
     }
   }
@@ -261,17 +308,6 @@ export function CreativeWorkspace({
     });
   }
 
-  function saveDocument() {
-    if (!selectedDocument) return;
-    setMessage("");
-    startTransition(async () => {
-      const doc = await saveDocumentImpl();
-      if (doc) {
-        setToast(`已保存《${doc.title}》`);
-      }
-    });
-  }
-
   function saveBrief() {
     if (!selectedDocument) return;
     setMessage("");
@@ -301,6 +337,8 @@ export function CreativeWorkspace({
     }
     setMessage("");
     setAiRunning(true);
+    aiAbortRef.current = new AbortController();
+    const signal = aiAbortRef.current.signal;
     startTransition(async () => {
       try {
         const kind = mode === "outline_plan" ? selectedType : "chapter";
@@ -314,9 +352,15 @@ export function CreativeWorkspace({
             userRequest: "",
             applyMode: mode === "chapter_write" ? "append" : "replace",
           }),
+          signal,
         });
+        if (signal.aborted) return;
         const payload = await res.json();
         if (!res.ok || !payload.ok) { setMessage(payload.error || "AI 执行失败"); return; }
+        if (payload.data.lastCall) setLastCall(payload.data.lastCall);
+        if (payload.data.downgraded) {
+          setDowngradeNotice("原稿超 30KB，本次使用替换模式生成。");
+        }
         if (payload.data.target === "brief") {
           setBrief(payload.data.document);
           setBriefContent(payload.data.document.content);
@@ -331,9 +375,19 @@ export function CreativeWorkspace({
         }
         setWriteGuardArmed(false);
         setToast("AI 操作已完成");
-      } catch { setMessage("网络错误，AI 操作失败"); }
-      finally { setAiRunning(false); }
+      } catch (err) {
+        if ((err as Error)?.name === "AbortError") { setToast("已取消"); return; }
+        setMessage("网络错误，AI 操作失败");
+      }
+      finally {
+        setAiRunning(false);
+        aiAbortRef.current = null;
+      }
     });
+  }
+
+  function cancelAi() {
+    aiAbortRef.current?.abort();
   }
 
   /* ===== Render ===== */
@@ -362,6 +416,12 @@ export function CreativeWorkspace({
           <>
             <div className="creation-editor-meta">
               <h3 className="creation-editor-title">{selectedDocument?.title ?? ""}</h3>
+              {selectedType === "chapter" && (project?.targetWords ?? 0) > 0 && (project?.targetChapters ?? 0) > 0 && (
+                <WordCountRing
+                  current={wordCount}
+                  target={Math.round((project?.targetWords ?? 0) / Math.max(1, project?.targetChapters ?? 1))}
+                />
+              )}
               <span className="creation-editor-hint">
                 Ctrl+S 保存 {selectedType === "chapter" ? "· Ctrl+B 任务书" : ""}
               </span>
@@ -379,19 +439,28 @@ export function CreativeWorkspace({
                 else setAssetContent(v);
               }}
               disabled={isPending || aiRunning}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
             />
-            <textarea
-              ref={textareaRef}
-              value={editorContent}
-              onChange={(e) => {
-                if (selectedType === "chapter") setChapterContent(e.target.value);
-                else setAssetContent(e.target.value);
-              }}
-              onKeyDown={handleEditorKeyDown}
-              spellCheck={false}
-              aria-label={`${typeLabel(selectedType)}编辑区`}
-              placeholder={`在此开始${typeLabel(selectedType)}写作…`}
-            />
+            <div className={`editor-body view-${viewMode}`}>
+              {(viewMode === "edit" || viewMode === "split") && (
+                <textarea
+                  ref={textareaRef}
+                  value={editorContent}
+                  onChange={(e) => {
+                    if (selectedType === "chapter") setChapterContent(e.target.value);
+                    else setAssetContent(e.target.value);
+                  }}
+                  onKeyDown={handleEditorKeyDown}
+                  spellCheck={false}
+                  aria-label={`${typeLabel(selectedType)}编辑区`}
+                  placeholder={`在此开始${typeLabel(selectedType)}写作…`}
+                />
+              )}
+              {(viewMode === "split" || viewMode === "preview") && (
+                <MarkdownPreview content={editorContent} />
+              )}
+            </div>
           </>
         ) : (
           <EmptyState message={emptyMessage} />
@@ -402,10 +471,37 @@ export function CreativeWorkspace({
           <div className="ai-loading-overlay">
             <span className="ai-spinner" />
             <span>AI 正在处理中，请稍候…</span>
+            <button
+              type="button"
+              className="ai-cancel-btn"
+              onClick={cancelAi}
+              aria-label="取消 AI 操作"
+            >取消</button>
           </div>
+        )}
+        {downgradeNotice && !aiRunning && (
+          <div className="downgrade-notice" role="status">{downgradeNotice}</div>
         )}
         {message && !aiRunning && <p className={`creation-editor-message ${messageClass}`}>{message}</p>}
       </div>
+
+      {/* Auto-save retry toast (outside editor area so it stays visible) */}
+      {autoSaveError && (
+        <div className="autosave-error-toast" role="alert">
+          <span>{autoSaveError}</span>
+          <button
+            type="button"
+            className="autosave-retry-btn"
+            onClick={() => {
+              setAutoSaveError(null);
+              startTransition(async () => {
+                const doc = await saveRef.current({ silent: false });
+                if (doc) setAutoSaveFailures(0);
+              });
+            }}
+          >立即重试</button>
+        </div>
+      )}
 
       {/* Brief Bottom Panel (chapters only) */}
       {selectedType === "chapter" && (
@@ -443,10 +539,11 @@ export function CreativeWorkspace({
         aiRunning={aiRunning}
         disabled={isPending}
         briefOpen={briefPanelOpen}
+        lastCall={lastCall}
         onSelectType={handleSelectType}
         onSelectDocument={selectDocument}
         onCreateDocument={createDocument}
-        onSave={saveDocument}
+        onSave={() => startTransition(() => { void saveDocument(); })}
         onToggleBrief={() => setBriefPanelOpen(!briefPanelOpen)}
         onRunAi={runAi}
       />

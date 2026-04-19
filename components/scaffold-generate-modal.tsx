@@ -71,7 +71,7 @@ export function ScaffoldGenerateModal({
     // Reset statuses
     setItems(prev => prev.map(item => ({
       ...item,
-      status: item.checked ? "waiting" as const : "waiting" as const,
+      status: "waiting" as const,
       error: undefined,
     })));
 

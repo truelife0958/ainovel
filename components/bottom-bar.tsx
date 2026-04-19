@@ -3,6 +3,8 @@
 import { useState } from "react";
 
 import { Dropdown } from "@/components/ui/dropdown";
+import { AiStatusLine } from "@/components/ai-status-line";
+import { filterChapters } from "@/lib/ui/chapter-search.js";
 import { typeLabel } from "@/lib/utils.js";
 import type { ProjectDocumentMeta, ProjectDocumentKind } from "@/types/documents";
 
@@ -21,6 +23,7 @@ type BottomBarProps = {
   aiRunning: boolean;
   disabled: boolean;
   briefOpen: boolean;
+  lastCall?: { latencyMs: number; usage: unknown } | null;
   onSelectType: (type: ProjectDocumentKind) => void;
   onSelectDocument: (type: ProjectDocumentKind, fileName: string) => void;
   onCreateDocument: (kind: ProjectDocumentKind, title: string) => void;
@@ -45,6 +48,7 @@ export function BottomBar({
   aiRunning,
   disabled,
   briefOpen,
+  lastCall,
   onSelectType,
   onSelectDocument,
   onCreateDocument,
@@ -57,6 +61,18 @@ export function BottomBar({
 
   const currentDocs = selectedType === "setting" ? settings
     : selectedType === "outline" ? outlines : chapters;
+
+  const [chapterQuery, setChapterQuery] = useState("");
+  const chapterNumberFromFileName = (name: string): number | undefined => {
+    const m = name.match(/第(\d+)章/);
+    return m ? parseInt(m[1], 10) : undefined;
+  };
+  const chaptersWithNumber = selectedType === "chapter"
+    ? currentDocs.map((d) => ({ ...d, chapterNumber: chapterNumberFromFileName(d.fileName) }))
+    : currentDocs;
+  const visibleDocs = selectedType === "chapter"
+    ? filterChapters(chaptersWithNumber, chapterQuery)
+    : currentDocs;
 
   // Calculate per-chapter word target
   const chapterTarget = targetWords && targetChapters
@@ -110,12 +126,29 @@ export function BottomBar({
           </button>
         }
       >
-        {currentDocs.length === 0 && (
+        {selectedType === "chapter" && currentDocs.length > 5 && (
+          <div style={{ padding: "6px 10px 0" }}>
+            <input
+              type="text"
+              value={chapterQuery}
+              onChange={(e) => setChapterQuery(e.target.value)}
+              placeholder="搜索章节 (标题 / 编号)"
+              className="chapter-search-input"
+              aria-label="搜索章节"
+            />
+          </div>
+        )}
+        {visibleDocs.length === 0 && currentDocs.length === 0 && (
           <div className="dropdown-item" style={{ fontSize: 13, color: "var(--muted)", cursor: "default" }}>
             尚无文件，请在下方新建
           </div>
         )}
-        {currentDocs.map((doc) => (
+        {visibleDocs.length === 0 && currentDocs.length > 0 && (
+          <div className="dropdown-item" style={{ fontSize: 13, color: "var(--muted)", cursor: "default" }}>
+            没有匹配的章节
+          </div>
+        )}
+        {visibleDocs.map((doc) => (
           <button
             key={doc.fileName}
             type="button"
@@ -207,6 +240,7 @@ export function BottomBar({
         <span className={`bottom-bar-wordcount${dirty ? " dirty" : ""}`}>
           {wordCount} 字{chapterTarget > 0 && selectedType === "chapter" ? ` / ${chapterTarget}` : ""}{dirty ? " · 未保存" : ""}
         </span>
+        <AiStatusLine lastCall={lastCall ?? null} />
       </div>
 
       <button

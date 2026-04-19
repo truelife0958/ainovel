@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
 import { sanitizeInput, sanitizeContent, validateContentSize } from "@/lib/api/sanitize";
+import { log } from "@/lib/log.js";
 import {
   createProjectDocument,
   listProjectDocuments,
@@ -38,6 +39,11 @@ export async function GET(request: Request) {
       data,
     });
   } catch (error) {
+    log.error("route_failed", {
+      route: "GET /api/projects/current/documents",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
     return NextResponse.json(
       {
         ok: false,
@@ -83,6 +89,11 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    log.error("route_failed", {
+      route: "POST /api/projects/current/documents",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
     return NextResponse.json(
       {
         ok: false,
@@ -126,6 +137,11 @@ export async function PUT(request: Request) {
       },
     });
   } catch (error) {
+    log.error("route_failed", {
+      route: "PUT /api/projects/current/documents",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
     return NextResponse.json(
       {
         ok: false,

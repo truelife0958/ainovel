@@ -4,6 +4,7 @@ import { runDocumentAiAction } from "@/lib/ai/actions";
 import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
 import { checkRateLimit, getClientIp } from "@/lib/api/rate-limit";
 import { sanitizeInput } from "@/lib/api/sanitize";
+import { log } from "@/lib/log.js";
 import { requireProjectRoot } from "@/lib/projects/discovery.js";
 
 const MAX_USER_REQUEST_LENGTH = 2000;
@@ -74,6 +75,7 @@ export async function POST(request: Request) {
       mode: body.mode,
       userRequest: sanitizedUserRequest,
       applyMode: body.applyMode,
+      signal: request.signal,
     });
 
     const maxReturnLength = 100000;
@@ -87,6 +89,17 @@ export async function POST(request: Request) {
       data: truncatedResult,
     });
   } catch (error) {
+    if ((error as Error)?.name === "AbortError" || request.signal.aborted) {
+      return NextResponse.json(
+        { ok: false, error: "Request cancelled" },
+        { status: 499 },
+      );
+    }
+    log.error("route_failed", {
+      route: "POST /api/projects/current/actions",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
     return NextResponse.json(
       {
         ok: false,

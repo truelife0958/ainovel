@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, useTransition } from "react";
+import { FormEvent, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -10,13 +10,21 @@ import type { ProjectIdeation } from "@/types/ideation";
 type IdeationFormProps = {
   initialIdeation: ProjectIdeation;
   onClose?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
-export function IdeationForm({ initialIdeation, onClose }: IdeationFormProps) {
+export function IdeationForm({ initialIdeation, onClose, onDirtyChange }: IdeationFormProps) {
   const router = useRouter();
   const [form, setForm] = useState(initialIdeation);
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  // Report dirty state to parent whenever the form diverges from initial.
+  useEffect(() => {
+    if (!onDirtyChange) return;
+    const dirty = JSON.stringify(form) !== JSON.stringify(initialIdeation);
+    onDirtyChange(dirty);
+  }, [form, initialIdeation, onDirtyChange]);
   const completionItems = [
     form.title,
     form.genre,
