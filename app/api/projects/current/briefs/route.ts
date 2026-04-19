@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
 import { sanitizeInput, sanitizeContent, validateContentSize } from "@/lib/api/sanitize";
+import { log } from "@/lib/log.js";
 import { readChapterBrief, updateChapterBrief } from "@/lib/projects/briefs.js";
 import { requireProjectRoot } from "@/lib/projects/discovery.js";
 import { syncChapterArtifacts } from "@/lib/projects/sync.js";
@@ -21,6 +22,11 @@ export async function GET(request: Request) {
     const brief = await readChapterBrief(await requireProjectRoot(), sanitizedFileName);
     return NextResponse.json({ ok: true, data: brief });
   } catch (error) {
+    log.error("route_failed", {
+      route: "GET /api/projects/current/briefs",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
     return NextResponse.json(
       {
         ok: false,
@@ -52,6 +58,11 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ ok: true, data: brief });
   } catch (error) {
+    log.error("route_failed", {
+      route: "PUT /api/projects/current/briefs",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
     return NextResponse.json(
       {
         ok: false,

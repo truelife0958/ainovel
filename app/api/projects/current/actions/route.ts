@@ -4,6 +4,7 @@ import { runDocumentAiAction } from "@/lib/ai/actions";
 import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
 import { checkRateLimit, getClientIp } from "@/lib/api/rate-limit";
 import { sanitizeInput } from "@/lib/api/sanitize";
+import { log } from "@/lib/log.js";
 import { requireProjectRoot } from "@/lib/projects/discovery.js";
 
 const MAX_USER_REQUEST_LENGTH = 2000;
@@ -94,6 +95,11 @@ export async function POST(request: Request) {
         { status: 499 },
       );
     }
+    log.error("route_failed", {
+      route: "POST /api/projects/current/actions",
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      error: (error as Error)?.message ?? String(error),
+    });
     return NextResponse.json(
       {
         ok: false,
