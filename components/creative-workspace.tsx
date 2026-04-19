@@ -2,10 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
-import { EditorToolbar, type EditorViewMode } from "@/components/editor-toolbar";
-import { EmptyState } from "@/components/empty-state";
-import { MarkdownPreview } from "@/components/markdown-preview";
-import { WordCountRing } from "@/components/word-count-ring";
+import { type EditorViewMode } from "@/components/editor-toolbar";
+import { EditorSurface } from "@/components/workspace/editor-surface";
 import { useAutoSave } from "@/components/hooks/use-auto-save";
 import { useAiRunner } from "@/components/hooks/use-ai-runner";
 import { useKeyboardShortcuts } from "@/components/hooks/use-keyboard-shortcuts";
@@ -320,80 +318,30 @@ export function CreativeWorkspace({
 
   return (
     <>
-      {/* Editor Area */}
-      <div className="creation-editor-area">
-        {hasSelectedDocument ? (
-          <>
-            <div className="creation-editor-meta">
-              <h3 className="creation-editor-title">{selectedDocument?.title ?? ""}</h3>
-              {selectedType === "chapter" && (project?.targetWords ?? 0) > 0 && (project?.targetChapters ?? 0) > 0 && (
-                <WordCountRing
-                  current={wordCount}
-                  target={Math.round((project?.targetWords ?? 0) / Math.max(1, project?.targetChapters ?? 1))}
-                />
-              )}
-              <span className="creation-editor-hint">
-                Ctrl+S 保存 {selectedType === "chapter" ? "· Ctrl+B 任务书" : ""}
-              </span>
-              {autoSaved && (
-                <span className="autosave-indicator visible">
-                  <span className="autosave-dot" />
-                  已自动保存
-                </span>
-              )}
-            </div>
-            <EditorToolbar
-              textareaRef={textareaRef}
-              onChange={(v) => {
-                if (selectedType === "chapter") setChapterContent(v);
-                else setAssetContent(v);
-              }}
-              disabled={isPending || aiRunning}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-            />
-            <div className={`editor-body view-${viewMode}`}>
-              {(viewMode === "edit" || viewMode === "split") && (
-                <textarea
-                  ref={textareaRef}
-                  value={editorContent}
-                  onChange={(e) => {
-                    if (selectedType === "chapter") setChapterContent(e.target.value);
-                    else setAssetContent(e.target.value);
-                  }}
-                  onKeyDown={handleEditorKeyDown}
-                  spellCheck={false}
-                  aria-label={`${typeLabel(selectedType)}编辑区`}
-                  placeholder={`在此开始${typeLabel(selectedType)}写作…`}
-                />
-              )}
-              {(viewMode === "split" || viewMode === "preview") && (
-                <MarkdownPreview content={editorContent} />
-              )}
-            </div>
-          </>
-        ) : (
-          <EmptyState message={emptyMessage} />
-        )}
-
-        {/* Status message / AI loading */}
-        {aiRunning && (
-          <div className="ai-loading-overlay">
-            <span className="ai-spinner" />
-            <span>AI 正在处理中，请稍候…</span>
-            <button
-              type="button"
-              className="ai-cancel-btn"
-              onClick={cancelAi}
-              aria-label="取消 AI 操作"
-            >取消</button>
-          </div>
-        )}
-        {downgradeNotice && !aiRunning && (
-          <div className="downgrade-notice" role="status">{downgradeNotice}</div>
-        )}
-        {message && !aiRunning && <p className={`creation-editor-message ${messageClass}`}>{message}</p>}
-      </div>
+      <EditorSurface
+        hasSelectedDocument={hasSelectedDocument}
+        selectedDocument={selectedDocument}
+        selectedType={selectedType}
+        project={project}
+        editorContent={editorContent}
+        wordCount={wordCount}
+        autoSaved={autoSaved}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onContentChange={(v) => {
+          if (selectedType === "chapter") setChapterContent(v);
+          else setAssetContent(v);
+        }}
+        onEditorKeyDown={handleEditorKeyDown}
+        textareaRef={textareaRef}
+        disabled={isPending || aiRunning}
+        emptyMessage={emptyMessage}
+        aiRunning={aiRunning}
+        onCancelAi={cancelAi}
+        downgradeNotice={downgradeNotice}
+        message={message}
+        messageClass={messageClass}
+      />
 
       {/* Auto-save retry toast (outside editor area so it stays visible) */}
       {autoSaveError && (
