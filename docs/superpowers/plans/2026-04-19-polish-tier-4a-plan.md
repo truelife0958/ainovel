@@ -1,3 +1,5 @@
+> **Status:** ✅ Executed in commits 7128198..a22e893 (tagged polish-tier-4a, pending merge)
+
 # Polish Tier 4a Implementation Plan — Zero-Behavior Cleanup
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

@@ -1,3 +1,5 @@
+> **Status:** ✅ Executed in commits a53cc70..f439633 (merged to main in 988686d, tagged polish-tier-1)
+
 # Polish Tier 1 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
