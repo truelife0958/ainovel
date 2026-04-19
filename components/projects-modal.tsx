@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Modal } from "@/components/ui/modal";
 import { ProjectWorkspacePanel } from "@/components/project-workspace-panel";
+import { useModalResource } from "@/lib/api/use-modal-resource";
 import type { ProjectWorkspace } from "@/types/project";
 
 type ProjectsModalProps = {
@@ -13,40 +13,11 @@ type ProjectsModalProps = {
 };
 
 export function ProjectsModal({ open, onClose }: ProjectsModalProps) {
-  const [workspace, setWorkspace] = useState<ProjectWorkspace | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const { data: workspace, loading, error, retry } = useModalResource<ProjectWorkspace>(
+    "/api/projects",
+    open,
+  );
   const router = useRouter();
-
-  useEffect(() => {
-    if (!open) return;
-    const controller = new AbortController();
-    setWorkspace(null);
-    setLoading(true);
-    setError(false);
-    fetch("/api/projects", { signal: controller.signal })
-      .then((r) => r.json())
-      .then((payload) => {
-        if (payload.ok) setWorkspace(payload.data);
-        else setError(true);
-      })
-      .catch((e) => { if (e.name !== "AbortError") setError(true); })
-      .finally(() => setLoading(false));
-    return () => controller.abort();
-  }, [open]);
-
-  function handleRetry() {
-    setError(false);
-    setLoading(true);
-    fetch("/api/projects")
-      .then((r) => r.json())
-      .then((payload) => {
-        if (payload.ok) setWorkspace(payload.data);
-        else setError(true);
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }
 
   function handleClose() {
     onClose();
@@ -63,7 +34,7 @@ export function ProjectsModal({ open, onClose }: ProjectsModalProps) {
       ) : error ? (
         <div className="modal-loading">
           <p className="modal-error">无法加载项目列表。</p>
-          <button type="button" className="action-button compact" onClick={handleRetry}>重试</button>
+          <button type="button" className="action-button compact" onClick={retry}>重试</button>
         </div>
       ) : workspace ? (
         <ProjectWorkspacePanel initialWorkspace={workspace} />

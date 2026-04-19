@@ -2,20 +2,19 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
-import { EditorToolbar, type EditorViewMode } from "@/components/editor-toolbar";
-import { EmptyState } from "@/components/empty-state";
-import { MarkdownPreview } from "@/components/markdown-preview";
-import { WordCountRing } from "@/components/word-count-ring";
+import { type EditorViewMode } from "@/components/editor-toolbar";
+import { EditorSurface } from "@/components/workspace/editor-surface";
+import { useAutoSave } from "@/components/hooks/use-auto-save";
+import { useAiRunner } from "@/components/hooks/use-ai-runner";
+import { useKeyboardShortcuts } from "@/components/hooks/use-keyboard-shortcuts";
 import { evaluateChapterWriteGuard } from "@/lib/ai/write-guard.js";
 import { parseChapterBriefContent, validateChapterBrief } from "@/lib/projects/brief-format.js";
 import { typeLabel } from "@/lib/utils.js";
-import { computeNextBackoffMs } from "@/components/creative-workspace-autosave.js";
 import { useAbortableFetch, isAbortError } from "@/lib/api/use-abortable-fetch";
 import { ChapterBriefEditor } from "@/components/workspace/chapter-brief-editor";
 import { BottomBar } from "@/components/bottom-bar";
 import { BottomPanel } from "@/components/ui/bottom-panel";
 import type { ChapterBrief, ChapterBriefValidation, ParsedChapterBrief } from "@/types/briefs";
-import type { ChapterContext } from "@/types/context";
 import type { ProjectDocument, ProjectDocumentMeta, ProjectDocumentKind } from "@/types/documents";
 import type { ProjectSummary } from "@/types/project";
 import type { ProviderRuntimeStatus } from "@/types/settings";
@@ -28,7 +27,6 @@ type CreativeWorkspaceProps = {
   chapters: ProjectDocumentMeta[];
   initialDocument: ProjectDocument | null;
   initialBrief: ChapterBrief | null;
-  initialContext: ChapterContext | null;
   initialAssistantRequest?: string;
   initialType: ProjectDocumentKind;
 };
@@ -51,8 +49,6 @@ function handleEditorKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
   textarea.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-const AUTOSAVE_DELAY = 30000; // 30s autosave
-
 export function CreativeWorkspace({
   project,
   assistantStatus,
@@ -61,7 +57,6 @@ export function CreativeWorkspace({
   chapters,
   initialDocument,
   initialBrief,
-  initialContext,
   initialAssistantRequest,
   initialType,
 }: CreativeWorkspaceProps) {
@@ -74,27 +69,18 @@ export function CreativeWorkspace({
   const [assetContent, setAssetContent] = useState("");
   const [brief, setBrief] = useState<ChapterBrief | null>(initialBrief);
   const [briefContent, setBriefContent] = useState(initialBrief?.content ?? "");
-  const [context, setContext] = useState<ChapterContext | null>(initialContext);
   const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<"info" | "error" | "success">("info");
   const [toast, setToast] = useState("");
   const [writeGuardArmed, setWriteGuardArmed] = useState(false);
   const [briefPanelOpen, setBriefPanelOpen] = useState(false);
-  const [aiRunning, setAiRunning] = useState(false);
-  const [autoSaved, setAutoSaved] = useState(false);
-  const [autoSaveFailures, setAutoSaveFailures] = useState(0);
-  const [autoSaveError, setAutoSaveError] = useState<string | null>(null);
-  const [downgradeNotice, setDowngradeNotice] = useState("");
-  const [lastCall, setLastCall] = useState<{ latencyMs: number; usage: unknown } | null>(null);
   const [viewMode, setViewMode] = useState<EditorViewMode>("edit");
   const [isPending, startTransition] = useTransition();
   const isPendingRef = useRef(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const autoSavedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const selectFetcher = useAbortableFetch();
-  const aiAbortRef = useRef<AbortController | null>(null);
+
+  const { aiRunning, downgradeNotice, lastCall, runAi, cancelAi } = useAiRunner();
 
   useEffect(() => {
     isPendingRef.current = isPending;
@@ -107,13 +93,6 @@ export function CreativeWorkspace({
     toastTimerRef.current = setTimeout(() => setToast(""), 3000);
     return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); };
   }, [toast]);
-
-  // Downgrade notice auto-dismiss (5s)
-  useEffect(() => {
-    if (!downgradeNotice) return;
-    const t = setTimeout(() => setDowngradeNotice(""), 5000);
-    return () => clearTimeout(t);
-  }, [downgradeNotice]);
 
   // Sync content on document change
   useEffect(() => { setChapterContent(selectedDocument?.content ?? ""); }, [selectedDocument]);
@@ -162,67 +141,32 @@ export function CreativeWorkspace({
     }
   }, [selectedDocument, selectedType, chapterContent, assetContent]);
 
-  // Ref to latest saveDocument so keyboard effect doesn't re-subscribe on every keystroke
+  // Ref to latest saveDocument so hooks can call the newest closure
   const saveRef = useRef(saveDocument);
   useEffect(() => { saveRef.current = saveDocument; }, [saveDocument]);
 
-  // Ctrl+S / Ctrl+B shortcut handler
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if ((event.ctrlKey || event.metaKey) && event.key === "s") {
-        event.preventDefault();
-        if (hasSelectedDocument && !isPendingRef.current) {
-          startTransition(() => { void saveRef.current(); });
-        }
-      }
-      // Ctrl+B to toggle brief panel
-      if ((event.ctrlKey || event.metaKey) && event.key === "b" && selectedType === "chapter") {
-        event.preventDefault();
-        setBriefPanelOpen(prev => !prev);
-      }
-      // Escape to close brief panel
-      if (event.key === "Escape" && briefPanelOpen) {
-        setBriefPanelOpen(false);
-      }
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [hasSelectedDocument, selectedType, briefPanelOpen]);
-
   // Auto-save with exponential backoff
-  useEffect(() => {
-    if (!chapterDirty || !hasSelectedDocument || isPending || aiRunning) return;
+  const autoSaveEnabled = chapterDirty && hasSelectedDocument && !isPending && !aiRunning;
+  const {
+    error: autoSaveError,
+    justSaved: autoSaved,
+    retry: retryAutoSave,
+  } = useAutoSave({
+    save: saveDocument,
+    enabled: autoSaveEnabled,
+  });
 
-    const delay = autoSaveFailures > 0
-      ? computeNextBackoffMs(autoSaveFailures - 1)
-      : AUTOSAVE_DELAY;
-
-    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    autoSaveTimerRef.current = setTimeout(() => {
-      startTransition(async () => {
-        const doc = await saveRef.current({ silent: true });
-        if (doc) {
-          setAutoSaveFailures(0);
-          setAutoSaveError(null);
-          setAutoSaved(true);
-          if (autoSavedTimerRef.current) clearTimeout(autoSavedTimerRef.current);
-          autoSavedTimerRef.current = setTimeout(() => setAutoSaved(false), 2000);
-        } else {
-          setAutoSaveFailures(n => n + 1);
-          setAutoSaveError("自动保存失败，将自动重试");
-        }
-      });
-    }, delay);
-
-    return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
-  }, [chapterDirty, hasSelectedDocument, isPending, aiRunning, autoSaveFailures]);
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onSave: () => startTransition(() => { void saveRef.current(); }),
+    onToggleBrief: () => setBriefPanelOpen((v) => !v),
+    onCloseBrief: () => setBriefPanelOpen(false),
+    canSave: hasSelectedDocument && !isPendingRef.current,
+    briefPanelOpen,
+    chapterContext: selectedType === "chapter",
+  });
 
   /* ===== Actions ===== */
-
-  function showMessage(msg: string, type: "info" | "error" | "success" = "info") {
-    setMessage(msg);
-    setMessageType(type);
-  }
 
   function handleSelectType(type: ProjectDocumentKind) {
     if (selectedType === type) return;
@@ -242,18 +186,15 @@ export function CreativeWorkspace({
       const signal = selectFetcher.beginGeneration();
       startTransition(async () => {
         try {
-          const [docRes, briefRes, ctxRes] = await Promise.all([
+          const [docRes, briefRes] = await Promise.all([
             fetch(`/api/projects/current/documents?kind=chapter&file=${encodeURIComponent(fileName)}`, { signal }),
             fetch(`/api/projects/current/briefs?file=${encodeURIComponent(fileName)}`, { signal }),
-            fetch(`/api/projects/current/context?file=${encodeURIComponent(fileName)}`, { signal }),
           ]);
           const docPayload = await docRes.json();
           const briefPayload = await briefRes.json();
-          const ctxPayload = await ctxRes.json();
           if (!docRes.ok || !docPayload.ok) { setMessage(docPayload.error || "读取章节失败"); return; }
           setSelectedDocument(docPayload.data);
           setBrief(briefRes.ok && briefPayload.ok ? briefPayload.data : null);
-          setContext(ctxRes.ok && ctxPayload.ok ? ctxPayload.data : null);
         } catch (err) {
           if (isAbortError(err)) return;
           setMessage("网络错误，切换章节失败");
@@ -289,16 +230,11 @@ export function CreativeWorkspace({
         if (!res.ok || !payload.ok) { setMessage(payload.error || "创建失败"); return; }
         const fileName = payload.data.document.fileName;
         if (selectedType === "chapter") {
-          const [briefRes, ctxRes] = await Promise.all([
-            fetch(`/api/projects/current/briefs?file=${encodeURIComponent(fileName)}`),
-            fetch(`/api/projects/current/context?file=${encodeURIComponent(fileName)}`),
-          ]);
+          const briefRes = await fetch(`/api/projects/current/briefs?file=${encodeURIComponent(fileName)}`);
           setChapterDocs(payload.data.documents);
           setSelectedDocument(payload.data.document);
           const briefPayload = await briefRes.json();
-          const ctxPayload = await ctxRes.json();
           setBrief(briefRes.ok && briefPayload.ok ? briefPayload.data : null);
-          setContext(ctxRes.ok && ctxPayload.ok ? ctxPayload.data : null);
         } else {
           setSelectedDocument(payload.data.document);
           setAssetContent(payload.data.document.content);
@@ -326,7 +262,7 @@ export function CreativeWorkspace({
     });
   }
 
-  function runAi(mode: "chapter_plan" | "chapter_write" | "outline_plan") {
+  function handleRunAi(mode: "chapter_plan" | "chapter_write" | "outline_plan") {
     if (!selectedDocument) return;
     if (mode === "chapter_plan" && briefDirty) { setMessage("任务书有未保存的修改，请先保存。"); return; }
     if (mode === "chapter_write" && chapterDirty) { setMessage("正文有未保存的修改，请先保存。"); return; }
@@ -336,58 +272,31 @@ export function CreativeWorkspace({
       return;
     }
     setMessage("");
-    setAiRunning(true);
-    aiAbortRef.current = new AbortController();
-    const signal = aiAbortRef.current.signal;
+    const kind = mode === "outline_plan" ? selectedType : "chapter";
     startTransition(async () => {
-      try {
-        const kind = mode === "outline_plan" ? selectedType : "chapter";
-        const res = await fetch("/api/projects/current/actions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            kind,
-            fileName: selectedDocument.fileName,
-            mode,
-            userRequest: "",
-            applyMode: mode === "chapter_write" ? "append" : "replace",
-          }),
-          signal,
-        });
-        if (signal.aborted) return;
-        const payload = await res.json();
-        if (!res.ok || !payload.ok) { setMessage(payload.error || "AI 执行失败"); return; }
-        if (payload.data.lastCall) setLastCall(payload.data.lastCall);
-        if (payload.data.downgraded) {
-          setDowngradeNotice("原稿超 30KB，本次使用替换模式生成。");
-        }
-        if (payload.data.target === "brief") {
-          setBrief(payload.data.document);
-          setBriefContent(payload.data.document.content);
+      const result = await runAi({
+        mode,
+        kind,
+        fileName: selectedDocument.fileName,
+        applyMode: mode === "chapter_write" ? "append" : "replace",
+      });
+      if (!result) { setToast("已取消"); return; }
+      if ("error" in result && result.error) { setMessage(result.error); return; }
+      if (result.target === "brief") {
+        setBrief(result.document as ChapterBrief);
+        setBriefContent(result.document.content);
+      } else {
+        setSelectedDocument(result.document as ProjectDocument);
+        if (selectedType === "chapter") {
+          setChapterContent(result.document.content);
+          if (result.documents) setChapterDocs(result.documents as ProjectDocumentMeta[]);
         } else {
-          setSelectedDocument(payload.data.document);
-          if (selectedType === "chapter") {
-            setChapterContent(payload.data.document.content);
-            setChapterDocs(payload.data.documents);
-          } else {
-            setAssetContent(payload.data.document.content);
-          }
+          setAssetContent(result.document.content);
         }
-        setWriteGuardArmed(false);
-        setToast("AI 操作已完成");
-      } catch (err) {
-        if ((err as Error)?.name === "AbortError") { setToast("已取消"); return; }
-        setMessage("网络错误，AI 操作失败");
       }
-      finally {
-        setAiRunning(false);
-        aiAbortRef.current = null;
-      }
+      setWriteGuardArmed(false);
+      setToast("AI 操作已完成");
     });
-  }
-
-  function cancelAi() {
-    aiAbortRef.current?.abort();
   }
 
   /* ===== Render ===== */
@@ -399,7 +308,6 @@ export function CreativeWorkspace({
     ? `在底部操作栏选择${typeLabel(selectedType)}，开始编辑。`
     : `在底部操作栏新建${typeLabel(selectedType)}，开始编辑。`;
 
-  // Detect error messages for styling
   const isErrorMessage = message && (
     message.includes("失败") || message.includes("错误") || message.includes("未保存")
   );
@@ -410,80 +318,30 @@ export function CreativeWorkspace({
 
   return (
     <>
-      {/* Editor Area */}
-      <div className="creation-editor-area">
-        {hasSelectedDocument ? (
-          <>
-            <div className="creation-editor-meta">
-              <h3 className="creation-editor-title">{selectedDocument?.title ?? ""}</h3>
-              {selectedType === "chapter" && (project?.targetWords ?? 0) > 0 && (project?.targetChapters ?? 0) > 0 && (
-                <WordCountRing
-                  current={wordCount}
-                  target={Math.round((project?.targetWords ?? 0) / Math.max(1, project?.targetChapters ?? 1))}
-                />
-              )}
-              <span className="creation-editor-hint">
-                Ctrl+S 保存 {selectedType === "chapter" ? "· Ctrl+B 任务书" : ""}
-              </span>
-              {autoSaved && (
-                <span className="autosave-indicator visible">
-                  <span className="autosave-dot" />
-                  已自动保存
-                </span>
-              )}
-            </div>
-            <EditorToolbar
-              textareaRef={textareaRef}
-              onChange={(v) => {
-                if (selectedType === "chapter") setChapterContent(v);
-                else setAssetContent(v);
-              }}
-              disabled={isPending || aiRunning}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
-            />
-            <div className={`editor-body view-${viewMode}`}>
-              {(viewMode === "edit" || viewMode === "split") && (
-                <textarea
-                  ref={textareaRef}
-                  value={editorContent}
-                  onChange={(e) => {
-                    if (selectedType === "chapter") setChapterContent(e.target.value);
-                    else setAssetContent(e.target.value);
-                  }}
-                  onKeyDown={handleEditorKeyDown}
-                  spellCheck={false}
-                  aria-label={`${typeLabel(selectedType)}编辑区`}
-                  placeholder={`在此开始${typeLabel(selectedType)}写作…`}
-                />
-              )}
-              {(viewMode === "split" || viewMode === "preview") && (
-                <MarkdownPreview content={editorContent} />
-              )}
-            </div>
-          </>
-        ) : (
-          <EmptyState message={emptyMessage} />
-        )}
-
-        {/* Status message / AI loading */}
-        {aiRunning && (
-          <div className="ai-loading-overlay">
-            <span className="ai-spinner" />
-            <span>AI 正在处理中，请稍候…</span>
-            <button
-              type="button"
-              className="ai-cancel-btn"
-              onClick={cancelAi}
-              aria-label="取消 AI 操作"
-            >取消</button>
-          </div>
-        )}
-        {downgradeNotice && !aiRunning && (
-          <div className="downgrade-notice" role="status">{downgradeNotice}</div>
-        )}
-        {message && !aiRunning && <p className={`creation-editor-message ${messageClass}`}>{message}</p>}
-      </div>
+      <EditorSurface
+        hasSelectedDocument={hasSelectedDocument}
+        selectedDocument={selectedDocument}
+        selectedType={selectedType}
+        project={project}
+        editorContent={editorContent}
+        wordCount={wordCount}
+        autoSaved={autoSaved}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onContentChange={(v) => {
+          if (selectedType === "chapter") setChapterContent(v);
+          else setAssetContent(v);
+        }}
+        onEditorKeyDown={handleEditorKeyDown}
+        textareaRef={textareaRef}
+        disabled={isPending || aiRunning}
+        emptyMessage={emptyMessage}
+        aiRunning={aiRunning}
+        onCancelAi={cancelAi}
+        downgradeNotice={downgradeNotice}
+        message={message}
+        messageClass={messageClass}
+      />
 
       {/* Auto-save retry toast (outside editor area so it stays visible) */}
       {autoSaveError && (
@@ -492,13 +350,7 @@ export function CreativeWorkspace({
           <button
             type="button"
             className="autosave-retry-btn"
-            onClick={() => {
-              setAutoSaveError(null);
-              startTransition(async () => {
-                const doc = await saveRef.current({ silent: false });
-                if (doc) setAutoSaveFailures(0);
-              });
-            }}
+            onClick={retryAutoSave}
           >立即重试</button>
         </div>
       )}
@@ -545,7 +397,7 @@ export function CreativeWorkspace({
         onCreateDocument={createDocument}
         onSave={() => startTransition(() => { void saveDocument(); })}
         onToggleBrief={() => setBriefPanelOpen(!briefPanelOpen)}
-        onRunAi={runAi}
+        onRunAi={handleRunAi}
       />
 
       {/* Toast */}

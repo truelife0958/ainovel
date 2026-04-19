@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 
 import { Modal } from "@/components/ui/modal";
 import { ConnectionWizard } from "@/components/connection-wizard";
+import { useModalResource } from "@/lib/api/use-modal-resource";
 import type { ProviderConfigSummary } from "@/types/settings";
 
 type ConnectionModalProps = {
@@ -12,40 +13,11 @@ type ConnectionModalProps = {
 };
 
 export function ConnectionModal({ open, onClose }: ConnectionModalProps) {
-  const [config, setConfig] = useState<ProviderConfigSummary | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const { data: config, loading, error, retry } = useModalResource<ProviderConfigSummary>(
+    "/api/settings/providers",
+    open,
+  );
   const dirtyRef = useRef(false);
-
-  useEffect(() => {
-    if (!open) return;
-    const controller = new AbortController();
-    setLoading(true);
-    setError(false);
-    dirtyRef.current = false;
-    fetch("/api/settings/providers", { signal: controller.signal })
-      .then((r) => r.json())
-      .then((payload) => {
-        if (payload.ok) setConfig(payload.data);
-        else setError(true);
-      })
-      .catch((e) => { if (e.name !== "AbortError") setError(true); })
-      .finally(() => setLoading(false));
-    return () => controller.abort();
-  }, [open]);
-
-  function handleRetry() {
-    setError(false);
-    setLoading(true);
-    fetch("/api/settings/providers")
-      .then((r) => r.json())
-      .then((payload) => {
-        if (payload.ok) setConfig(payload.data);
-        else setError(true);
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }
 
   return (
     <Modal
@@ -64,7 +36,7 @@ export function ConnectionModal({ open, onClose }: ConnectionModalProps) {
       ) : error ? (
         <div className="modal-loading">
           <p className="modal-error">无法加载配置。</p>
-          <button type="button" className="action-button compact" onClick={handleRetry}>重试</button>
+          <button type="button" className="action-button compact" onClick={retry}>重试</button>
         </div>
       ) : config ? (
         <ConnectionWizard

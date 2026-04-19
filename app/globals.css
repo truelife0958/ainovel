@@ -2059,7 +2059,7 @@ textarea {
   box-shadow: 0 12px 32px rgba(212, 112, 74, 0.25);
 }
 
-/* ===== Downgrade Notice (T1.5b) ===== */
+/* ===== Downgrade Notice ===== */
 .downgrade-notice {
   margin: 8px 16px;
   padding: 10px 14px;
@@ -2070,7 +2070,7 @@ textarea {
   font-size: 13px;
 }
 
-/* ===== Auto-save Error Toast (T1.1) ===== */
+/* ===== Auto-save Error Toast ===== */
 .autosave-error-toast {
   position: fixed;
   bottom: 92px;
@@ -2099,7 +2099,7 @@ textarea {
 
 .autosave-retry-btn:hover { background: rgba(248, 113, 113, 0.1); }
 
-/* ===== Error Boundary Fallback (T1.8) ===== */
+/* ===== Error Boundary Fallback ===== */
 .error-boundary-fallback {
   margin: 40px auto;
   max-width: 520px;
@@ -2145,7 +2145,7 @@ textarea {
 }
 .error-boundary-actions button:hover { background: var(--accent-soft); }
 
-/* ===== Button Spinner (T1.10) ===== */
+/* ===== Button Spinner ===== */
 .btn-spinner {
   display: inline-block;
   width: 12px;
@@ -2159,7 +2159,7 @@ textarea {
 }
 @keyframes btn-spin { to { transform: rotate(360deg); } }
 
-/* ===== AI Cancel Button (T2.3) ===== */
+/* ===== AI Cancel Button ===== */
 .ai-cancel-btn {
   margin-left: 16px;
   padding: 4px 12px;
@@ -2174,7 +2174,7 @@ textarea {
 .ai-cancel-btn:hover { background: rgba(0, 0, 0, 0.06); }
 [data-theme="dark"] .ai-cancel-btn:hover { background: rgba(255, 255, 255, 0.08); }
 
-/* ===== AI Status Line (T2.4) ===== */
+/* ===== AI Status Line ===== */
 .ai-status-line {
   font-size: 12px;
   color: var(--muted);
@@ -2183,7 +2183,7 @@ textarea {
   font-variant-numeric: tabular-nums;
 }
 
-/* ===== Markdown Preview (T2.5) ===== */
+/* ===== Markdown Preview ===== */
 .editor-body {
   display: grid;
   flex: 1;
@@ -2260,7 +2260,7 @@ textarea {
   color: var(--ink);
 }
 
-/* ===== Chapter Search (T2.6) ===== */
+/* ===== Chapter Search ===== */
 .chapter-search-input {
   width: 100%;
   margin-bottom: 6px;
@@ -2276,7 +2276,7 @@ textarea {
   outline-offset: -1px;
 }
 
-/* ===== Export Menu (T2.7) ===== */
+/* ===== Export Menu ===== */
 .export-menu-wrap { position: relative; }
 .export-menu-popup {
   position: absolute;
@@ -2306,7 +2306,7 @@ textarea {
 .export-menu-item:hover:not(:disabled) { background: var(--accent-soft); }
 .export-menu-item:disabled { color: var(--muted); cursor: not-allowed; }
 
-/* ===== Word-count Ring (T2.8) ===== */
+/* ===== Word-count Ring ===== */
 .word-count-ring {
   display: inline-flex;
   align-items: center;

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Dropdown } from "@/components/ui/dropdown";
+import { useModalResource } from "@/lib/api/use-modal-resource";
 import type { ProjectWorkspace } from "@/types/project";
 
 type ProjectDropdownProps = {
@@ -18,28 +19,17 @@ export function ProjectDropdown({
   onManageProjects,
 }: ProjectDropdownProps) {
   const [open, setOpen] = useState(false);
-  const [workspace, setWorkspace] = useState<ProjectWorkspace | null>(null);
+  const { data: workspace, error, retry } = useModalResource<ProjectWorkspace>(
+    "/api/projects",
+    open,
+  );
   const [switching, setSwitching] = useState<string | null>(null);
-  const [error, setError] = useState(false);
+  const [switchError, setSwitchError] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    if (open && !workspace) {
-      const controller = new AbortController();
-      setError(false);
-      fetch("/api/projects", { signal: controller.signal })
-        .then((r) => r.json())
-        .then((payload) => {
-          if (payload.ok) setWorkspace(payload.data);
-          else setError(true);
-        })
-        .catch((e) => { if (e.name !== "AbortError") setError(true); });
-      return () => controller.abort();
-    }
-  }, [open, workspace]);
 
   function handleSwitch(projectId: string) {
     setSwitching(projectId);
+    setSwitchError(false);
     fetch("/api/projects/current", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -49,17 +39,18 @@ export function ProjectDropdown({
       .then((payload) => {
         if (payload.ok) {
           setOpen(false);
-          setWorkspace(null);
+          retry();
           router.refresh();
         } else {
-          setError(true);
+          setSwitchError(true);
         }
       })
-      .catch(() => setError(true))
+      .catch(() => setSwitchError(true))
       .finally(() => setSwitching(null));
   }
 
   const projects = workspace?.projects ?? [];
+  const showError = error || switchError;
 
   return (
     <Dropdown
@@ -80,7 +71,7 @@ export function ProjectDropdown({
         </button>
       }
     >
-      {error && (
+      {showError && (
         <div className="dropdown-item" style={{ color: "var(--error-text)", fontSize: 13 }}>
           加载失败，请关闭后重试
         </div>
