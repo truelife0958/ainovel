@@ -86,8 +86,8 @@ export function BatchGenerateModal({
     setChapters(prev => prev.map((c, i) => i === idx ? { ...c, ...patch } : c));
   }
 
-  async function waitForResume(signal: AbortSignal) {
-    while (pauseRef.current && !signal.aborted) {
+  async function waitForResume(signal?: AbortSignal) {
+    while (pauseRef.current && !signal?.aborted) {
       await new Promise(r => setTimeout(r, 500));
     }
   }
@@ -109,9 +109,10 @@ export function BatchGenerateModal({
     setChapters(initial);
 
     const tasks = initial.map((_, i) => async () => {
-      const signal = abortRef.current!.signal;
+      const signal = abortRef.current?.signal;
+      if (signal?.aborted) return;
       await waitForResume(signal);
-      if (signal.aborted) return;
+      if (signal?.aborted) return;
 
       const chapterNum = startChapter + i;
       updateChapter(i, { status: "running", step: "create" });
@@ -119,12 +120,12 @@ export function BatchGenerateModal({
       const needsCreate = chapterNum > existingChapterCount;
       if (needsCreate) await apiCreateChapter(chapterNum);
       await waitForResume(signal);
-      if (signal.aborted) return;
+      if (signal?.aborted) return;
 
       updateChapter(i, { step: "plan" });
       await apiRunAi(chapterNum, "chapter_plan");
       await waitForResume(signal);
-      if (signal.aborted) return;
+      if (signal?.aborted) return;
 
       updateChapter(i, { step: "write" });
       const result = await apiRunAi(chapterNum, "chapter_write");
@@ -135,7 +136,7 @@ export function BatchGenerateModal({
     });
 
     await runBatch(tasks, {
-      signal: abortRef.current.signal,
+      signal: abortRef.current!.signal,
       onProgress: (i, r) => {
         if (!r.ok && r.error) {
           updateChapter(i, { status: "error", error: r.error.message || "未知错误" });
@@ -146,7 +147,7 @@ export function BatchGenerateModal({
     });
 
     setWaitSec(0);
-    if (!abortRef.current.signal.aborted) {
+    if (!abortRef.current?.signal.aborted) {
       setStatus((s) => (s === "error" ? "error" : "completed"));
     } else {
       setStatus("idle");

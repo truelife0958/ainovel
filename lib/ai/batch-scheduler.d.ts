@@ -5,7 +5,7 @@ export type BatchOpts = {
   onWait: (seconds: number) => void;
   onPause?: (reason: string) => void;
   signal?: AbortSignal;
-  sleep?: (ms: number) => Promise<void>;
+  sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
   maxConsecutiveErrors?: number;
 };
 export function runBatch(tasks: BatchTask[], opts: BatchOpts): Promise<void>;

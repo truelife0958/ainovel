@@ -16,6 +16,7 @@ venv/
 
 # Local runtime data
 .webnovel/
+.omc/
 
 # OS / editor
 .DS_Store

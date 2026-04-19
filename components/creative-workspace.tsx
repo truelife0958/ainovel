@@ -27,7 +27,6 @@ type CreativeWorkspaceProps = {
   chapters: ProjectDocumentMeta[];
   initialDocument: ProjectDocument | null;
   initialBrief: ChapterBrief | null;
-  initialAssistantRequest?: string;
   initialType: ProjectDocumentKind;
 };
 
@@ -57,7 +56,6 @@ export function CreativeWorkspace({
   chapters,
   initialDocument,
   initialBrief,
-  initialAssistantRequest,
   initialType,
 }: CreativeWorkspaceProps) {
   const [selectedType, setSelectedType] = useState<ProjectDocumentKind>(initialType);

@@ -10,7 +10,6 @@ type HomePageProps = {
   searchParams?: Promise<{
     file?: string | string[];
     type?: string | string[];
-    assistantRequest?: string | string[];
   }>;
 };
 
@@ -62,8 +61,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       ])
     : [null, null];
 
-  const initialAssistantRequest = firstValue(params?.assistantRequest);
-
   return (
     <ErrorBoundary>
       <AppShell project={project} aiAvailable={assistantStatus.available}>
@@ -75,7 +72,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           chapters={chapterDocs}
           initialDocument={initialDocument}
           initialBrief={initialBrief}
-          initialAssistantRequest={initialAssistantRequest}
           initialType={requestedType as "chapter" | "setting" | "outline"}
         />
       </AppShell>
