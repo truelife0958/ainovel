@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { assertNoAxeCriticalViolations } from "./helpers/a11y.mjs";
 
 test.describe("Dark mode", () => {
   test("toggle persists across reload", async ({ page }) => {
@@ -13,6 +14,7 @@ test.describe("Dark mode", () => {
     await page.reload();
     const theme2 = await page.evaluate(() => document.documentElement.dataset.theme);
     expect(theme2).toBe(theme1);
+    await assertNoAxeCriticalViolations(page, "dark-mode:toggle");
   });
 
   test("system preference honored when no manual preference stored", async ({ page }) => {
@@ -23,5 +25,6 @@ test.describe("Dark mode", () => {
     await page.goto("/");
     const theme = await page.evaluate(() => document.documentElement.dataset.theme);
     expect(theme).toBe("dark");
+    await assertNoAxeCriticalViolations(page, "dark-mode:system");
   });
 });
