@@ -17,7 +17,6 @@ import { ChapterBriefEditor } from "@/components/workspace/chapter-brief-editor"
 import { BottomBar } from "@/components/bottom-bar";
 import { BottomPanel } from "@/components/ui/bottom-panel";
 import type { ChapterBrief, ChapterBriefValidation, ParsedChapterBrief } from "@/types/briefs";
-import type { ChapterContext } from "@/types/context";
 import type { ProjectDocument, ProjectDocumentMeta, ProjectDocumentKind } from "@/types/documents";
 import type { ProjectSummary } from "@/types/project";
 import type { ProviderRuntimeStatus } from "@/types/settings";
@@ -30,7 +29,6 @@ type CreativeWorkspaceProps = {
   chapters: ProjectDocumentMeta[];
   initialDocument: ProjectDocument | null;
   initialBrief: ChapterBrief | null;
-  initialContext: ChapterContext | null;
   initialAssistantRequest?: string;
   initialType: ProjectDocumentKind;
 };
@@ -61,7 +59,6 @@ export function CreativeWorkspace({
   chapters,
   initialDocument,
   initialBrief,
-  initialContext,
   initialAssistantRequest,
   initialType,
 }: CreativeWorkspaceProps) {
@@ -74,9 +71,7 @@ export function CreativeWorkspace({
   const [assetContent, setAssetContent] = useState("");
   const [brief, setBrief] = useState<ChapterBrief | null>(initialBrief);
   const [briefContent, setBriefContent] = useState(initialBrief?.content ?? "");
-  const [context, setContext] = useState<ChapterContext | null>(initialContext);
   const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<"info" | "error" | "success">("info");
   const [toast, setToast] = useState("");
   const [writeGuardArmed, setWriteGuardArmed] = useState(false);
   const [briefPanelOpen, setBriefPanelOpen] = useState(false);
@@ -175,11 +170,6 @@ export function CreativeWorkspace({
 
   /* ===== Actions ===== */
 
-  function showMessage(msg: string, type: "info" | "error" | "success" = "info") {
-    setMessage(msg);
-    setMessageType(type);
-  }
-
   function handleSelectType(type: ProjectDocumentKind) {
     if (selectedType === type) return;
     setSelectedType(type);
@@ -198,18 +188,15 @@ export function CreativeWorkspace({
       const signal = selectFetcher.beginGeneration();
       startTransition(async () => {
         try {
-          const [docRes, briefRes, ctxRes] = await Promise.all([
+          const [docRes, briefRes] = await Promise.all([
             fetch(`/api/projects/current/documents?kind=chapter&file=${encodeURIComponent(fileName)}`, { signal }),
             fetch(`/api/projects/current/briefs?file=${encodeURIComponent(fileName)}`, { signal }),
-            fetch(`/api/projects/current/context?file=${encodeURIComponent(fileName)}`, { signal }),
           ]);
           const docPayload = await docRes.json();
           const briefPayload = await briefRes.json();
-          const ctxPayload = await ctxRes.json();
           if (!docRes.ok || !docPayload.ok) { setMessage(docPayload.error || "读取章节失败"); return; }
           setSelectedDocument(docPayload.data);
           setBrief(briefRes.ok && briefPayload.ok ? briefPayload.data : null);
-          setContext(ctxRes.ok && ctxPayload.ok ? ctxPayload.data : null);
         } catch (err) {
           if (isAbortError(err)) return;
           setMessage("网络错误，切换章节失败");
@@ -245,16 +232,11 @@ export function CreativeWorkspace({
         if (!res.ok || !payload.ok) { setMessage(payload.error || "创建失败"); return; }
         const fileName = payload.data.document.fileName;
         if (selectedType === "chapter") {
-          const [briefRes, ctxRes] = await Promise.all([
-            fetch(`/api/projects/current/briefs?file=${encodeURIComponent(fileName)}`),
-            fetch(`/api/projects/current/context?file=${encodeURIComponent(fileName)}`),
-          ]);
+          const briefRes = await fetch(`/api/projects/current/briefs?file=${encodeURIComponent(fileName)}`);
           setChapterDocs(payload.data.documents);
           setSelectedDocument(payload.data.document);
           const briefPayload = await briefRes.json();
-          const ctxPayload = await ctxRes.json();
           setBrief(briefRes.ok && briefPayload.ok ? briefPayload.data : null);
-          setContext(ctxRes.ok && ctxPayload.ok ? ctxPayload.data : null);
         } else {
           setSelectedDocument(payload.data.document);
           setAssetContent(payload.data.document.content);

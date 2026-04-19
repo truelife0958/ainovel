@@ -5,7 +5,6 @@ import { getCurrentProjectSummary } from "@/lib/projects/discovery.js";
 import { readProviderConfigSummary, createProviderRuntimeStatus } from "@/lib/settings/provider-config.js";
 import { listProjectDocuments, readProjectDocument } from "@/lib/projects/documents.js";
 import { readChapterBrief } from "@/lib/projects/briefs.js";
-import { buildChapterContext } from "@/lib/projects/context.js";
 
 type HomePageProps = {
   searchParams?: Promise<{
@@ -56,13 +55,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       ? selectedDocs.find((item) => item.fileName === requestedFile) || selectedDocs[0]
       : selectedDocs[0];
 
-  const [initialDocument, initialBrief, initialContext] = selectedMeta
+  const [initialDocument, initialBrief] = selectedMeta
     ? await Promise.all([
         readProjectDocument(project.root, requestedType as "chapter" | "setting" | "outline", selectedMeta.fileName),
         requestedType === "chapter" ? readChapterBrief(project.root, selectedMeta.fileName) : Promise.resolve(null),
-        requestedType === "chapter" ? buildChapterContext(project.root, selectedMeta.fileName) : Promise.resolve(null),
       ])
-    : [null, null, null];
+    : [null, null];
 
   const initialAssistantRequest = firstValue(params?.assistantRequest);
 
@@ -77,7 +75,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           chapters={chapterDocs}
           initialDocument={initialDocument}
           initialBrief={initialBrief}
-          initialContext={initialContext}
           initialAssistantRequest={initialAssistantRequest}
           initialType={requestedType as "chapter" | "setting" | "outline"}
         />
