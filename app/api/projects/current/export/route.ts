@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
+
+import { withRouteLogging } from "@/lib/api/with-route-logging";
 import { sanitizeInput } from "@/lib/api/sanitize";
-import { log } from "@/lib/log.js";
 import { requireProjectRoot } from "@/lib/projects/discovery.js";
 import { listProjectDocuments, readProjectDocument } from "@/lib/projects/documents.js";
 import { combineChaptersAsTxt, safeFileName } from "@/lib/projects/export.js";
 
-export async function GET(request: Request) {
-  try {
+export const GET = withRouteLogging(
+  "GET /api/projects/current/export",
+  async (request) => {
     const projectRoot = await requireProjectRoot();
     const url = new URL(request.url);
     const format = url.searchParams.get("format");
@@ -44,15 +45,6 @@ export async function GET(request: Request) {
     }
 
     throw new Error("Unsupported export format. Use format=md&file=... or format=txt-all.");
-  } catch (error) {
-    log.error("route_failed", {
-      route: "GET /api/projects/current/export",
-      requestId: request.headers.get("x-request-id") ?? "unknown",
-      error: (error as Error)?.message ?? String(error),
-    });
-    return NextResponse.json(
-      { ok: false, error: sanitizeErrorMessage(error, "Unable to export") },
-      { status: 400 },
-    );
-  }
-}
+  },
+  "Unable to export",
+);

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
+import { withRouteLogging } from "@/lib/api/with-route-logging";
 import { checkRateLimit, getClientIp } from "@/lib/api/rate-limit";
-import { log } from "@/lib/log.js";
 import {
   readProviderConfigSummary,
   updateProviderConfig,
@@ -11,27 +10,27 @@ import {
 const RATE_LIMIT_MAX = 20;
 const RATE_LIMIT_WINDOW = 60000;
 
-export async function GET(request: Request) {
-  const clientIp = getClientIp(request);
-  const rateCheck = checkRateLimit(`settings:${clientIp}`, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW);
+function rateLimit429(retryAfter: number) {
+  return NextResponse.json(
+    { ok: false, error: "请求过于频繁，请稍后再试" },
+    {
+      status: 429,
+      headers: {
+        "Retry-After": String(retryAfter),
+        "X-RateLimit-Limit": String(RATE_LIMIT_MAX),
+        "X-RateLimit-Remaining": "0",
+      },
+    },
+  );
+}
 
-  if (!rateCheck.allowed) {
-    return NextResponse.json(
-      { ok: false, error: "请求过于频繁，请稍后再试" },
-      {
-        status: 429,
-        headers: {
-          "Retry-After": String(rateCheck.retryAfter),
-          "X-RateLimit-Limit": String(RATE_LIMIT_MAX),
-          "X-RateLimit-Remaining": "0",
-        },
-      }
-    );
-  }
-
-  try {
+const getHandler = withRouteLogging(
+  "GET /api/settings/providers",
+  async (request) => {
     const config = await readProviderConfigSummary();
-
+    const clientIp = getClientIp(request);
+    // The caller's rate-limit record; we re-read remaining (already consumed at entry)
+    const rateCheck = checkRateLimit(`settings:${clientIp}`, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW);
     return NextResponse.json({
       ok: true,
       data: config,
@@ -40,41 +39,14 @@ export async function GET(request: Request) {
         limit: RATE_LIMIT_MAX,
       },
     });
-  } catch (error) {
-    log.error("route_failed", {
-      route: "GET /api/settings/providers",
-      requestId: request.headers.get("x-request-id") ?? "unknown",
-      error: (error as Error)?.message ?? String(error),
-    });
-    return NextResponse.json(
-      { ok: false, error: sanitizeErrorMessage(error, "Unable to load provider settings") },
-      { status: 500 },
-    );
-  }
-}
+  },
+  "Unable to load provider settings",
+);
 
-export async function PUT(request: Request) {
-  const clientIp = getClientIp(request);
-  const rateCheck = checkRateLimit(`settings-put:${clientIp}`, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW);
-
-  if (!rateCheck.allowed) {
-    return NextResponse.json(
-      { ok: false, error: "请求过于频繁，请稍后再试" },
-      {
-        status: 429,
-        headers: {
-          "Retry-After": String(rateCheck.retryAfter),
-          "X-RateLimit-Limit": String(RATE_LIMIT_MAX),
-          "X-RateLimit-Remaining": "0",
-        },
-      }
-    );
-  }
-
-  try {
+const putHandler = withRouteLogging(
+  "PUT /api/settings/providers",
+  async (request) => {
     const body = await request.json();
-
-    // Validate payload size to prevent abuse
     const bodyStr = JSON.stringify(body ?? {});
     if (bodyStr.length > 102400) {
       return NextResponse.json(
@@ -82,26 +54,23 @@ export async function PUT(request: Request) {
         { status: 400 },
       );
     }
-
     await updateProviderConfig(process.env.WEBNOVEL_WRITER_CONFIG_ROOT, body ?? {});
     const config = await readProviderConfigSummary();
+    return NextResponse.json({ ok: true, data: config });
+  },
+  "Unable to save provider settings",
+);
 
-    return NextResponse.json({
-      ok: true,
-      data: config,
-    });
-  } catch (error) {
-    log.error("route_failed", {
-      route: "PUT /api/settings/providers",
-      requestId: request.headers.get("x-request-id") ?? "unknown",
-      error: (error as Error)?.message ?? String(error),
-    });
-    return NextResponse.json(
-      {
-        ok: false,
-        error: sanitizeErrorMessage(error, "Unable to save provider settings"),
-      },
-      { status: 500 },
-    );
-  }
+export async function GET(request: Request) {
+  const clientIp = getClientIp(request);
+  const rateCheck = checkRateLimit(`settings:${clientIp}`, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW);
+  if (!rateCheck.allowed) return rateLimit429(rateCheck.retryAfter ?? 60);
+  return getHandler(request);
+}
+
+export async function PUT(request: Request) {
+  const clientIp = getClientIp(request);
+  const rateCheck = checkRateLimit(`settings-put:${clientIp}`, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW);
+  if (!rateCheck.allowed) return rateLimit429(rateCheck.retryAfter ?? 60);
+  return putHandler(request);
 }

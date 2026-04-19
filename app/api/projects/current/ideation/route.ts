@@ -1,33 +1,22 @@
 import { NextResponse } from "next/server";
 
-import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
+import { withRouteLogging } from "@/lib/api/with-route-logging";
 import { sanitizeInput } from "@/lib/api/sanitize";
-import { log } from "@/lib/log.js";
 import { readProjectIdeation, updateProjectIdeation } from "@/lib/projects/state.js";
 import { requireProjectRoot } from "@/lib/projects/discovery.js";
 
-export async function GET(request: Request) {
-  try {
+export const GET = withRouteLogging(
+  "GET /api/projects/current/ideation",
+  async () => {
     const ideation = await readProjectIdeation(await requireProjectRoot());
     return NextResponse.json({ ok: true, data: ideation });
-  } catch (error) {
-    log.error("route_failed", {
-      route: "GET /api/projects/current/ideation",
-      requestId: request.headers.get("x-request-id") ?? "unknown",
-      error: (error as Error)?.message ?? String(error),
-    });
-    return NextResponse.json(
-      {
-        ok: false,
-        error: sanitizeErrorMessage(error, "Unable to load ideation"),
-      },
-      { status: 500 },
-    );
-  }
-}
+  },
+  "Unable to load ideation",
+);
 
-export async function PUT(request: Request) {
-  try {
+export const PUT = withRouteLogging(
+  "PUT /api/projects/current/ideation",
+  async (request) => {
     const body = await request.json();
     const patch = typeof body === "object" && body !== null ? body : {};
 
@@ -47,18 +36,6 @@ export async function PUT(request: Request) {
 
     const ideation = await updateProjectIdeation(await requireProjectRoot(), sanitizedPatch);
     return NextResponse.json({ ok: true, data: ideation });
-  } catch (error) {
-    log.error("route_failed", {
-      route: "PUT /api/projects/current/ideation",
-      requestId: request.headers.get("x-request-id") ?? "unknown",
-      error: (error as Error)?.message ?? String(error),
-    });
-    return NextResponse.json(
-      {
-        ok: false,
-        error: sanitizeErrorMessage(error, "Unable to save ideation"),
-      },
-      { status: 500 },
-    );
-  }
-}
+  },
+  "Unable to save ideation",
+);

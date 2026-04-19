@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
+import { withRouteLogging } from "@/lib/api/with-route-logging";
 import { sanitizeInput, sanitizeContent, validateContentSize } from "@/lib/api/sanitize";
-import { log } from "@/lib/log.js";
 import {
   createProjectDocument,
   listProjectDocuments,
@@ -23,42 +22,26 @@ function asKind(value: string | null) {
   throw new Error("Unsupported document kind");
 }
 
-export async function GET(request: Request) {
-  try {
+export const GET = withRouteLogging(
+  "GET /api/projects/current/documents",
+  async (request) => {
     const { searchParams } = new URL(request.url);
     const kind = asKind(searchParams.get("kind"));
     const fileName = sanitizeInput(searchParams.get("file") ?? "", MAX_FILENAME_LENGTH) || null;
     const projectRoot = await requireProjectRoot();
-
     const data = fileName
       ? await readProjectDocument(projectRoot, kind, fileName)
       : await listProjectDocuments(projectRoot, kind);
+    return NextResponse.json({ ok: true, data });
+  },
+  "Unable to load documents",
+);
 
-    return NextResponse.json({
-      ok: true,
-      data,
-    });
-  } catch (error) {
-    log.error("route_failed", {
-      route: "GET /api/projects/current/documents",
-      requestId: request.headers.get("x-request-id") ?? "unknown",
-      error: (error as Error)?.message ?? String(error),
-    });
-    return NextResponse.json(
-      {
-        ok: false,
-        error: sanitizeErrorMessage(error, "Unable to load documents"),
-      },
-      { status: 400 },
-    );
-  }
-}
-
-export async function POST(request: Request) {
-  try {
+export const POST = withRouteLogging(
+  "POST /api/projects/current/documents",
+  async (request) => {
     const body = await request.json();
     const kind = asKind(body.kind);
-
     const title = sanitizeInput(body.title, 200);
     const fileName = sanitizeInput(body.fileName, MAX_FILENAME_LENGTH);
 
@@ -80,32 +63,17 @@ export async function POST(request: Request) {
       });
     }
     const documents = await listProjectDocuments(projectRoot, kind);
-
     return NextResponse.json({
       ok: true,
-      data: {
-        document,
-        documents,
-      },
+      data: { document, documents },
     });
-  } catch (error) {
-    log.error("route_failed", {
-      route: "POST /api/projects/current/documents",
-      requestId: request.headers.get("x-request-id") ?? "unknown",
-      error: (error as Error)?.message ?? String(error),
-    });
-    return NextResponse.json(
-      {
-        ok: false,
-        error: sanitizeErrorMessage(error, "Unable to create document"),
-      },
-      { status: 400 },
-    );
-  }
-}
+  },
+  "Unable to create document",
+);
 
-export async function PUT(request: Request) {
-  try {
+export const PUT = withRouteLogging(
+  "PUT /api/projects/current/documents",
+  async (request) => {
     const body = await request.json();
     const kind = asKind(body.kind);
 
@@ -128,26 +96,10 @@ export async function PUT(request: Request) {
       });
     }
     const documents = await listProjectDocuments(projectRoot, kind);
-
     return NextResponse.json({
       ok: true,
-      data: {
-        document,
-        documents,
-      },
+      data: { document, documents },
     });
-  } catch (error) {
-    log.error("route_failed", {
-      route: "PUT /api/projects/current/documents",
-      requestId: request.headers.get("x-request-id") ?? "unknown",
-      error: (error as Error)?.message ?? String(error),
-    });
-    return NextResponse.json(
-      {
-        ok: false,
-        error: sanitizeErrorMessage(error, "Unable to save document"),
-      },
-      { status: 400 },
-    );
-  }
-}
+  },
+  "Unable to save document",
+);

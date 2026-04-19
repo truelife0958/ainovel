@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 
-import { sanitizeErrorMessage } from "@/lib/api/sanitize-error";
+import { withRouteLogging } from "@/lib/api/with-route-logging";
 import { sanitizeInput } from "@/lib/api/sanitize";
-import { log } from "@/lib/log.js";
 import {
   listProjectsWithCurrent,
   setCurrentProject,
 } from "@/lib/projects/workspace.js";
 import { getCurrentProjectSummary } from "@/lib/projects/discovery.js";
 
-export async function GET(request: Request) {
-  try {
+export const GET = withRouteLogging(
+  "GET /api/projects/current",
+  async () => {
     const project = await getCurrentProjectSummary();
     if (!project) {
       return NextResponse.json(
@@ -19,24 +19,13 @@ export async function GET(request: Request) {
       );
     }
     return NextResponse.json({ ok: true, data: project });
-  } catch (error) {
-    log.error("route_failed", {
-      route: "GET /api/projects/current",
-      requestId: request.headers.get("x-request-id") ?? "unknown",
-      error: (error as Error)?.message ?? String(error),
-    });
-    return NextResponse.json(
-      {
-        ok: false,
-        error: sanitizeErrorMessage(error, "Unable to load current project"),
-      },
-      { status: 500 },
-    );
-  }
-}
+  },
+  "Unable to load current project",
+);
 
-export async function PUT(request: Request) {
-  try {
+export const PUT = withRouteLogging(
+  "PUT /api/projects/current",
+  async (request) => {
     const body = await request.json();
     const projectId = sanitizeInput(body.projectId, 200);
 
@@ -54,18 +43,6 @@ export async function PUT(request: Request) {
       ok: true,
       data: { project, workspace },
     });
-  } catch (error) {
-    log.error("route_failed", {
-      route: "PUT /api/projects/current",
-      requestId: request.headers.get("x-request-id") ?? "unknown",
-      error: (error as Error)?.message ?? String(error),
-    });
-    return NextResponse.json(
-      {
-        ok: false,
-        error: sanitizeErrorMessage(error, "Unable to switch project"),
-      },
-      { status: 500 },
-    );
-  }
-}
+  },
+  "Unable to switch project",
+);
