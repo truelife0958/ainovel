@@ -1,6 +1,56 @@
 # Changelog
 
-## 2026-04-19 — Polish to 9.9 (Tiers 1-3)
+## 2026-04-19 — Polish to 9.9 (Tiers 1-5 + post-audit fix)
+
+### Post-audit fix
+
+- **Fixed** — Removed dead `initialAssistantRequest` prop chain
+  (URL param → `app/page.tsx` → `CreativeWorkspace`) that was
+  declared and destructured but never read (tsc strict
+  `--noUnusedLocals` caught it).
+- **Fixed** — `lib/ai/batch-scheduler.js` `defaultSleep` now listens
+  for `AbortSignal`; user "Stop" during a 429 rate-limit wait takes
+  effect immediately instead of waiting up to 30 s.
+- **Chore** — Added `.omc/` to `.gitignore` and untracked four
+  runtime state files that shouldn't live in version control.
+
+### Tier 5 · Finer-grained cleanup (tag polish-tier-5)
+
+- **Chore** — Dropped unused workspace state: `context` / `messageType`
+  / `showMessage`; removed the dead `/api/projects/current/context`
+  client fetch + server-side `buildChapterContext` pre-render.
+- **Refactor** — Extracted `EditorSurface` sub-component
+  (`creative-workspace.tsx` 459 → 407).
+- **Refactor** — Extracted `BatchProgressSection` sub-component
+  (`batch-generate-modal.tsx` 318 → 249).
+- **Docs** — Added "EXECUTED in commits X..Y" status banners to 5
+  historical plan files under `docs/superpowers/plans/`.
+
+### Tier 4b · Structural refactor (tag polish-tier-4b)
+
+- **Refactor** — `providers.js` uses a `createAdapter` strategy
+  pattern. Each of 9 providers is now a ~10-line declaration;
+  Anthropic keeps its `cache_control: ephemeral` via a
+  `buildRequest` closure. 491 → 347 lines.
+- **Refactor** — Split prompts out of `actions.js` into
+  `lib/ai/prompts/{_shared,outline,chapter,setting,reference,index}.js`.
+  `actions.js` 622 → 218.
+- **Refactor** — Extracted `useAutoSave` / `useAiRunner` /
+  `useKeyboardShortcuts` hooks from `creative-workspace.tsx`.
+
+### Tier 4a · Zero-behavior cleanup (tag polish-tier-4a)
+
+- **Chore** — Dropped unused `lib/ai/prompt-cache.js` helper and
+  its tests.
+- **Chore** — Dropped unused `@testing-library/user-event` devDep.
+- **Refactor** — New `lib/api/with-route-logging.ts` higher-order
+  handler collapses 18 `catch` blocks across 10 routes.
+- **Refactor** — New `lib/api/use-modal-resource.ts` hook DRYs
+  five modal `AbortController` + loading + error + retry sites.
+- **Style** — Stripped `(T1.x)` / `(T2.x)` tier tags from CSS
+  section headers.
+
+## 2026-04-19 (earlier) — Polish to 9.9 (Tiers 1-3)
 
 ### Tier 1 · Correctness & resilience
 
