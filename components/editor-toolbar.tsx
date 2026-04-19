@@ -1,6 +1,7 @@
 "use client";
 
 import { type RefObject } from "react";
+import { applyFormatToText } from "@/lib/editor/format.js";
 
 export type EditorViewMode = "edit" | "split" | "preview";
 
@@ -31,36 +32,8 @@ const FORMAT_ACTIONS: Record<string, FormatAction> = {
 
 function applyFormat(textarea: HTMLTextAreaElement, action: FormatAction): string {
   const { value, selectionStart, selectionEnd } = textarea;
-  const selected = value.slice(selectionStart, selectionEnd);
+  const { value: newValue, cursorPos } = applyFormatToText(value, selectionStart, selectionEnd, action);
 
-  let newValue: string;
-  let cursorPos: number;
-
-  if (action.type === "wrap") {
-    const wrapped = `${action.before}${selected || "文本"}${action.after}`;
-    newValue = value.slice(0, selectionStart) + wrapped + value.slice(selectionEnd);
-    cursorPos = selected
-      ? selectionStart + wrapped.length
-      : selectionStart + action.before.length;
-  } else if (action.type === "prefix") {
-    // Find the start of the current line
-    const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
-    const lineContent = value.slice(lineStart, selectionEnd);
-
-    // Toggle: if already has prefix, remove it
-    if (lineContent.startsWith(action.prefix)) {
-      newValue = value.slice(0, lineStart) + lineContent.slice(action.prefix.length) + value.slice(selectionEnd);
-      cursorPos = selectionEnd - action.prefix.length;
-    } else {
-      newValue = value.slice(0, lineStart) + action.prefix + value.slice(lineStart);
-      cursorPos = selectionEnd + action.prefix.length;
-    }
-  } else {
-    newValue = value.slice(0, selectionStart) + action.text + value.slice(selectionEnd);
-    cursorPos = selectionStart + action.text.length;
-  }
-
-  // Use native setter to work with React controlled input
   const nativeSetter = Object.getOwnPropertyDescriptor(
     HTMLTextAreaElement.prototype, "value",
   )?.set;
