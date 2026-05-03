@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-05-03 — Tier 6 Pass 2 / sub-tier 6.1（性能 & Bundle · 已调查）
+
+### Investigated (no code change)
+- **F5 page-load gzipped** — 试 `next/dynamic({ ssr: false })` 6 个 modal 后
+  反而**升至 168.7 KB**（reverted）。Turbopack 在 Next 16 下对 `next/dynamic`
+  的 chunk-split 把 loader runtime + 元数据塞进 rootMain，与节省的 modal 代码
+  ~等量；改动无净收益。改 3 个最大 modal 也是同样结果。
+- 6.4 的 next 16.1.7→16.2.4 升级单独贡献了 ~14 KB framework 增长（154→168 KB）
+  ——这是**安全合规的必要代价**（high CVE → 0 trade-off）。
+- F5 进 backlog：等 Turbopack 改进 dynamic 优化后重测，或专门迁回 webpack
+  模式做对比测量（受 lib/utils.js 的 `node:path` URI 限制，独立工程）。
+
+### Tag
+- `polish-tier-6.1`（已调查 + 进 backlog；非"无 fix"）
+
 ## 2026-05-03 — Tier 6 Pass 2 / sub-tier 6.3（测试覆盖）
 
 ### Added (test smoke)

@@ -651,3 +651,23 @@ $ env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy \
 **进 backlog（不做）**：
 - F1 `app-smoke:52`：实际症状不止 selector 漂移；当 titleField 与 .project-row 都不可见时测试卡住，根因可能是模态创建/列表态切换的初始化时序问题，需要重新设计该 spec，超出 6.3 简单 selector 修复范围。
 - F6 中 `batch-generate.spec.mjs` / `reference-analysis.spec.mjs`：toolbar 的 "批量生成" / "参考借鉴" 按钮可见性由 SSR-time `aiAvailable` 决定，仅靠 `page.route()` mock `/api/settings/providers` 不足以让 SSR 看到（需要先在 fs 写入 provider config），mock 成本超过 ROI ≥ M 阈值。`scaffold-generate` 同因，本轮一并保留 graceful-skip 设计（不是 bug，是 graceful degradation）。
+
+### 7.6.1 sub-tier 6.1 性能 & Bundle（tag `polish-tier-6.1` · 已调查 / 进 backlog）
+
+| finding | before | after | 备注 |
+|---------|--------|-------|------|
+| F5 page-load gzipped | 154 KB（Pass 1 测） | **168 KB**（Pass 2 测）| **回归来自 6.4 next 16.1.7→16.2.4 框架升级，约 +14 KB**；不是本 sub-tier 引入。 |
+
+**调查过程**：
+1. 把 6 个 modal 改 `next/dynamic({ ssr: false })` → page-load **升至 168.7 KB**（regression）
+2. 缩到 3 个最大 modal（reference/batch/scaffold）→ 仍 168.8 KB（与 6 个等同）
+3. revert 全部 → 168.8 KB（与 dynamic 等同）
+
+**结论**：
+- Turbopack 在 Next 16 下对 `next/dynamic` 的 chunk-split 实现，把 loader runtime + chunk 元数据放进 `rootMainFiles`；这部分增量与节省的 modal 代码 ~等量。**改动无净收益**。
+- 真正能控制 page-load 的杠杆在 Turbopack 团队侧（dynamic optimization）或迁回 webpack（但 §1.2 已知 lib/utils.js 的 `node:path` URI 需要 webpack 插件配合，独立工程量）。
+- 6.4 的 next 升级带来 14 KB framework 增长是**安全合规的必要代价**（high CVE → 0 trade-off）。
+
+**F5 进 backlog**：等 Turbopack 改进 next/dynamic 优化后重测，或专门迁回 webpack 模式做对比测量。
+
+**作为 polish-tier-6.1 tag 的内容**：本 sub-tier 是"调查 + 决定不动"的合法收尾，符合设计 §2.6 失败策略（"红了 revert 不硬推"）。tag 的存在是为了让 git history 留下"调查过 6.1 + 结论"的可追溯记录。
