@@ -20,8 +20,15 @@ npm install
 npm run dev          # 开发服务器 http://localhost:3000
 npm run build        # 生产构建
 npm test             # 单元 + 组件测试 (134)
+npm run test:coverage  # c8 单元 + 组件覆盖率（Tier 6 Pass 1 起）
 npm run test:e2e     # Playwright E2E (6 specs)
+npm run analyze      # ANALYZE=1 next build；注：插件是 webpack-only，Turbopack 默认静默忽略，需 `next build --webpack` 才出 html
 ```
+
+> **E2E 跑不起来？** 若系统设置了 `HTTP_PROXY=http://127.0.0.1:N` 类的 HTTP 代理，
+> Playwright 端口探测会被代理拦截返回 503 误判端口已占用。在跑 E2E 前 `unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy`，
+> 或 `env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npm run test:e2e`。
+> 待 Tier 6 sub-tier 6.4 修复后会从 `scripts/run-playwright-e2e.mjs` 内部处理（finding F11）。
 
 ### 环境变量（可选）
 

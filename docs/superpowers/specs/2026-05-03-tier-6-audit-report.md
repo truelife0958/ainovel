@@ -436,10 +436,78 @@ Connection Wizard 入口：`components/connection-wizard.tsx`，由 `ConnectionM
 
 
 ## 5. Findings 汇总（按 severity / ROI 排序）
-（Task 10 写入）
+
+| # | finding | 来源 | severity | ROI | 工作量 | 建议 |
+|---|---------|------|----------|-----|--------|------|
+| **F1** | E2E 4 fail（`app-smoke:52` 选择器漂移 + `dark-mode×2` + `export×1` 因 axe critical 红） | §3.1 | 🔴 critical | H | M | **Pass 2 / 6.2 + 6.3** |
+| **F2** | axe critical `aria-allowed-attr` × 2 nodes —— `header > .dropdown-container[aria-haspopup="listbox"]`（同一根因导致 F1 中 3 个失败） | §2.2 / §3.1 | 🔴 critical | H | S | **Pass 2 / 6.2** —— 修一处同时解 F1 中 3 个 fail |
+| **F3** | npm runtime advisory：`next ^16.1.7` 命中 GHSA-q4gf-8mx6-v5v3（high，DoS via Server Components） | §4.1 | 🔴 high | H | S | **Pass 2 / 6.4** —— `npm install next@latest` + 验证 |
+| **F4** | npm runtime advisory：`postcss <8.5.10` 命中 GHSA-qx2v-qp2m-jg93（moderate，XSS via unescaped `</style>`） | §4.1 | 🟡 moderate | H | S | **Pass 2 / 6.4** —— 随 F3 一并解决（postcss 是 next 的 transitive） |
+| **F5** | First Load JS（page-load）154 KB gzipped，超首页红线 130 KB | §1.1 | 🟡 high (架构) | M | M | **Pass 2 / 6.1** —— polyfills 现代浏览器 target 瘦身 + 重型 modal `dynamic()` import |
+| **F6** | E2E 6 个用例 skip（含 3 个非 live-ai：`batch-generate` / `reference-analysis` / `scaffold-generate`），跳过原因待查 | §3.1 | 🟡 moderate | M | S | **Pass 2 / 6.3** —— 排查 skip 触发条件，至少恢复 3 个非 live-ai |
+| **F7** | 7 个文件 branch coverage < 60%（_shared.js 22% / state.js 27% / review.js 28% / chapter.js 30% / providers.js 45% / outline.js 50% / workspace.js 50%） | §3.2 | 🟡 moderate | M | M | **Pass 2 / 6.3** —— 针对性补单测 |
+| **F8** | 2 个 prompt 模块 statement coverage < 10%（`setting.js` 2% / `reference.js` 6%）—— 单测从未 import | §3.2 | 🟡 moderate | M | S | **Pass 2 / 6.3** —— 至少 import 跑 smoke 路径 |
+| **F9** | `app/api/**/route.ts` 在 c8 覆盖率盲区（c8 没插到 server runtime / E2E 进程） | §3.2 | 🟡 moderate | L | M | **Pass 2 / 6.3 (低)** 或 backlog —— 可把 c8 包到 E2E 进程或单测里 partial-mount route handler |
+| **F10** | axe moderate `page-has-heading-one`（整页无 `<h1>`） | §2.2 | 🟡 moderate | M | S | **Pass 2 / 6.2** —— 加 visually-hidden h1 (~5 行) |
+| **F11** | `npm run test:e2e` 在系统级 HTTP_PROXY=127.0.0.1:10808 时 503 误判端口占用 → 完全跑不起来 | §3.1 / §4.2 | 🟡 high (DX) | H | S | **Pass 2 / 6.4** —— `scripts/run-playwright-e2e.mjs` 启 child 前 delete env.HTTP_PROXY 等 4 个变量，或 README 加 workaround |
+| **F12** | `@next/bundle-analyzer` 在 Next 16 Turbopack 下静默无输出 —— 0 用户提示 | §1.2 / §4.2 | 🟢 minor | M | S | **Pass 2 / 6.4** —— `next.config.ts` 在 `ANALYZE=1 && Turbopack` 时打印 warn |
+| **F13** | Build warning：`middleware` 文件约定 deprecated（Next 16），建议迁 `proxy`；README/ARCHITECTURE 仍称 "middleware" | §1.1 / §4.2 | 🟢 minor | L | M | **Backlog**（涉及 middleware.ts 迁移，需要 e2e 全绿基础上做） |
+| **F14** | E2E port 选用 `3201 + (pid % 2000)` 容易与残留进程碰撞 | §3.1 / §4.2 | 🟢 minor | L | S | **Pass 2 / 6.4 (低)** 或 backlog |
+| **F15** | 错误文案 "Active provider X is missing an API key"（`actions.js:133`）无 CTA / deep-link 到 Connection Wizard | §4.2 | 🟢 minor | M | S | **Pass 2 / 6.4** —— 把错误经过 catch / banner 转成可点击的"配置 Provider"按钮 |
+| **F16** | 5 个 envvar 在代码但 README 未提（`COMPUTERNAME` / `HOSTNAME` / `NEXT_DIST_DIR` / `NODE_ENV` / `SKIP_API_KEY_VALIDATION`） | §4.2 | 🟢 minor | L | S | **Pass 2 / 6.4 (低)** 或 backlog —— 需要的写 README，纯内部的写 ADR/comment |
+| **F17** | webpack-mode build（`next build --webpack`）失败：`lib/utils.js` 用 `import "node:path"` URI，webpack 默认不支持 | §1.2 | 🟢 minor | L | M | **Backlog** —— 我们用 Turbopack 不影响生产，但限制了 analyzer 维度 |
+
+**汇总**
+
+| severity | 数量 |
+|----------|-----:|
+| 🔴 critical / high | 4 (F1 / F2 / F3 / F11) |
+| 🟡 moderate | 8 |
+| 🟢 minor | 5 |
+| **合计** | **17** |
 
 ## 6. 建议进入 Pass 2 的修复项
-（Task 10 写入）
+
+> 入选标准（设计 §2.1）：ROI ≥ M（修复成本 ≤ 1 个分级 commit、收益可被一条具体验收信号验证）。
+
+### 6.1 性能 & Bundle（M 工作量）
+
+| sub-finding | 验收信号 |
+|------------|----------|
+| F5：page-load 154 KB → 目标 ≤ 130 KB | `npm run build` 后从 `.next/build-manifest.json` + chunk gzip 实测 page-load gz < 130 KB |
+
+### 6.2 a11y（S 工作量）
+
+| sub-finding | 验收信号 |
+|------------|----------|
+| F2 + F10：`aria-allowed-attr` × 2 + `page-has-heading-one` | 重跑临时 a11y spec（同 Task 8 步骤）后 violations 数 = 0 critical / 0 serious / ≤ 1 moderate；同时 `npm run test:e2e` 中 dark-mode + export 三个用例由红转绿 |
+
+### 6.3 测试覆盖（M 工作量）
+
+| sub-finding | 验收信号 |
+|------------|----------|
+| F1 (`app-smoke:52`) | `app-smoke.spec.mjs:52` 用例由红转绿（与 6.2 协同：先修 a11y 再修选择器） |
+| F6 (3 个非 live-ai spec skip) | `batch-generate` / `reference-analysis` / `scaffold-generate` 三个 spec 至少 1 个 / 3 个由 skip 转 pass |
+| F7 + F8 (低 branch / 极低 stmt 文件) | `npm run test:coverage` 后 `lib/projects` branch ≥ 70%；`lib/ai/prompts` statements ≥ 50% |
+
+### 6.4 安全 & DX（M 工作量，组合修复）
+
+| sub-finding | 验收信号 |
+|------------|----------|
+| F3 + F4：runtime advisories | `npm audit --omit=dev` 后 high = 0 / moderate = 0 |
+| F11 (HTTP_PROXY E2E 拦截) | `npm run test:e2e` 在 HTTP_PROXY 环境下能正常启动（无 503 误判） |
+| F12 (analyzer 静默) | `ANALYZE=1 npm run build` 在 Turbopack 下打印明确 warn 提示 |
+| F15 (错误文案 CTA) | "missing API key" 错误转化为带 deep-link 的可视化 banner |
+
+### 进入 backlog（不修，文档化）
+
+- F9（c8 盲区到 app/api）：基础架构变更成本不对应当下 ROI
+- F13（middleware → proxy 迁移）：等 6.2 + 6.3 把 E2E 全绿后才能安全迁
+- F14（E2E 端口随机化）：上次碰撞是偶发；F11 修好后实际不会再触发
+- F16 中纯内部 envvar：comment 即可
+- F17（webpack mode build 失败）：Turbopack 是生产路径，影响低
+
+
 
 ## 附录 A：原始命令与日志摘录
 

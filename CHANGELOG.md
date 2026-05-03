@@ -1,5 +1,52 @@
 # Changelog
 
+## 2026-05-03 — Tier 6 Pass 1（audit · 跑通取证）
+
+### Added (devDep / scripts only — runtime deps unchanged)
+
+- `@next/bundle-analyzer ^16.2.4` devDep + `next.config.ts`
+  `ANALYZE=1` env-gated 包装 + `npm run analyze` script。
+  注：插件是 webpack-only，Next 16 默认 Turbopack 静默忽略；
+  `next build --webpack` 才能产出 html 报告（详见 §1.2）。
+- `c8 ^11.0.0` devDep + `npm run test:coverage` script
+  （c8 text-summary + per-file table over `lib` + `app`）。
+
+### Audited（"经审"凭证）
+
+- `tsc --noEmit`：0 错误（耗时 1.828s）。
+- `npm test`：134/134（duration 2380ms）。
+- `npm run build`：Next 16.1.7 + Turbopack；page-load 154 KB gz；
+  1 build warning（`middleware` 文件约定 deprecated → `proxy`）。
+- `npm run test:e2e`：⚠ **1 passed / 4 failed / 6 skipped**
+  （README "axe-core critical = 0" 不实，3 处 critical
+  `aria-allowed-attr × 2` 同根因；1 个 selector 漂移）。
+- a11y 扩级（critical+serious+moderate）：4 violations，去重 2 根因。
+- Bundle composition：top-10 client/server modules（webpack analyzer
+  output before webpack build error；用于模块归因）。
+- Coverage：Statements 83.13% / Branches 68.6% / Functions 88.62%。
+- `npm audit`：runtime **1 high (next DoS)** + 1 moderate (postcss XSS)。
+- DX：6 envvar 在代码但 README 未提；HTTP_PROXY 系统代理拦截
+  E2E 端口探测；@next/bundle-analyzer 在 Turbopack 下静默无输出。
+
+### Findings
+
+- 详见 `docs/superpowers/specs/2026-05-03-tier-6-audit-report.md`
+  §5（17 个 finding：4 critical/high · 8 moderate · 5 minor）+
+  §6（4 个 sub-tier 6.1–6.4 候选）。
+- Pass 2 触发：**是**，待用户决策启动哪些 sub-tier。
+
+### Pass 1 invariants
+
+- 运行时依赖仍为 `next` / `react` / `react-dom` 三件套（不变量 I4）。
+- `tsc --noEmit` / `npm test` / `npm run build` 全绿（I1–I3）。
+- 业务代码、组件、API 路由、CSS **0 行**变化。
+- `npm run test:e2e` 红色（不变量 I5 失守）—— 但这是**审计前已存在**的回归，
+  Pass 1 仅观测而不修；Pass 2 sub-tier 6.2 + 6.3 修复后 I5 将恢复。
+
+### Tag
+
+- `tier-6-audit`（Pass 1 完成）。
+
 ## 2026-04-19 — Polish to 9.9 (Tiers 1-5 + post-audit fix)
 
 ### Post-audit fix
