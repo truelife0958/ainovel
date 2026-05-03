@@ -36,7 +36,7 @@ export function Dropdown({ trigger, open, onClose, align = "left", direction = "
   }, [open, onClose]);
 
   return (
-    <div ref={containerRef} className="dropdown-container" aria-haspopup="listbox" aria-expanded={open}>
+    <div ref={containerRef} className="dropdown-container">
       {trigger}
       {open && (
         <div className={`dropdown-panel ${align}${direction === "up" ? " up" : ""}`} role="listbox">

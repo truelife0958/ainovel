@@ -593,3 +593,22 @@ $ env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy \
 ```
 
 **注**：第一次运行时 `npm run test:e2e` 因 `HTTP_PROXY=http://127.0.0.1:10808` 系统代理，导致 Playwright webServer 端口探测对所有 127.0.0.1 端口收到 503，误判"端口已占用"立即退出。`env -u` 清掉代理后才能跑。这一点本身也是 finding（详见 §4.2 DX）。
+
+---
+
+## 7. Pass 2 闭环结果
+
+### 7.6.2 sub-tier 6.2 a11y（tag `polish-tier-6.2`）
+
+| finding | before | after | verify |
+|---------|--------|-------|--------|
+| F2 `aria-allowed-attr` × 2 nodes | 2 critical | **0** | 临时 a11y spec count = 0 |
+| F10 `page-has-heading-one` × 1 | 1 moderate (×2 occurrences) | **0** | 同上 |
+| F1 中 dark-mode×2 + export×1 | 3 E2E fail | **3 pass** | `npm run test:e2e` ✓ |
+
+**修复方式：**
+1. `components/ui/dropdown.tsx` — 移除外层 `<div className="dropdown-container">` 上的 `aria-haspopup="listbox"` / `aria-expanded={open}`。这两个属性在无 role 的 `<div>` 上是非法（axe-core `aria-allowed-attr`），调用方的 `<button>` trigger（如 `export-menu.tsx`）已经自带这两个属性。
+2. `components/app-shell.tsx` — AppShell + WelcomeShell 在 `<main>` landmark 内加 `<h1 className="visually-hidden">`，先尝试放在 `<main>` 外部触发 axe `region` 警告，**修复方式**改为放进 `<main>` 内（同时 WelcomeShell 把外层 `<div className="welcome-content">` 升级为 `<main>`，保持 `welcome-content` 类名以维持现有 CSS）。
+3. `app/globals.css` — 追加标准 `.visually-hidden` utility class。
+
+**验收**：临时 a11y spec count = 0；`npm run test:e2e` 由 `1 passed / 4 failed / 6 skipped` 变为 `4 passed / 1 failed / 6 skipped`。剩 1 fail（`app-smoke:52`）属 finding F1 selector 漂移，留 sub-tier 6.3 修。

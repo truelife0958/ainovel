@@ -44,6 +44,7 @@ export function AppShell({ project, aiAvailable, children }: AppShellProps) {
         onToggleZen={() => setZenMode(!zenMode)}
       />
       <main className="creation-main">
+        <h1 className="visually-hidden">{project ? `Webnovel Writer · ${project.title}` : "Webnovel Writer"}</h1>
         {children}
       </main>
 
@@ -98,7 +99,8 @@ export function WelcomeShell({ aiAvailable }: {
         onOpenScaffold={() => {}}
         onOpenReference={() => {}}
       />
-      <div className="welcome-content">
+      <main className="welcome-content">
+        <h1 className="visually-hidden">Webnovel Writer · 欢迎</h1>
         <div className="welcome-brand-icon">W</div>
         <div>
           <h2>开始你的创作之旅</h2>
@@ -123,7 +125,7 @@ export function WelcomeShell({ aiAvailable }: {
             配置 AI 连接
           </button>
         </div>
-      </div>
+      </main>
 
       <ConnectionModal open={connectionOpen} onClose={() => setConnectionOpen(false)} />
       <ProjectsModal open={projectsOpen} onClose={() => setProjectsOpen(false)} />

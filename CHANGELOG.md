@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-05-03 — Tier 6 Pass 2 / sub-tier 6.2（a11y）
+
+### Fixed
+- **a11y critical** — `Dropdown` 外层 `<div>` 移除 `aria-haspopup` / `aria-expanded`
+  (`components/ui/dropdown.tsx`)：两个属性在无 role 的 div 上是非法，
+  调用方的 trigger 按钮（如 `export-menu.tsx`）已经自带这两个属性。
+- **a11y moderate** — AppShell / WelcomeShell 加 visually-hidden `<h1>`，
+  并把 WelcomeShell 顶层 `<div class="welcome-content">` 升格为 `<main>`，
+  让 h1 落在 landmark 内；消除 `page-has-heading-one` + `region` 两个 violation。
+- **E2E** — 由 a11y critical 引发的 3 个 E2E fail（`dark-mode:toggle` /
+  `dark-mode:system` / `export:menu-open`）由 ✘ 转 ✓。E2E 由 1/4/6 改善到 4/1/6
+  （仅余 `app-smoke:52` selector 漂移，留 sub-tier 6.3 修）。
+
+### Tag
+- `polish-tier-6.2`
+
 ## 2026-05-03 — Tier 6 Pass 1（audit · 跑通取证）
 
 ### Added (devDep / scripts only — runtime deps unchanged)
