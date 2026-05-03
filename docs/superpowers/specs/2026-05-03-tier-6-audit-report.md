@@ -287,7 +287,48 @@ Lines        : 83.13% ( 2952/3551 )
 ## 4. 安全 & DX
 
 ### 4.1 npm audit
-（Task 7 写入）
+
+**Runtime-only**（`npm audit --omit=dev`）
+
+```json
+{
+  "info": 0,
+  "low": 0,
+  "moderate": 1,
+  "high": 1,
+  "critical": 0,
+  "total": 2
+}
+```
+
+**Full（含 devDeps）** —— 所有 advisories 都在 runtime 路径里，dev 路径无新增。
+
+```json
+{
+  "info": 0,
+  "low": 0,
+  "moderate": 1,
+  "high": 1,
+  "critical": 0,
+  "total": 2
+}
+```
+
+**Advisories 明细**
+
+| pkg | severity | CVE | 标题 | 受影响 range | 当前 | 修复 |
+|-----|----------|-----|------|-------------|------|------|
+| `next` | **high** | [GHSA-q4gf-8mx6-v5v3](https://github.com/advisories/GHSA-q4gf-8mx6-v5v3)（CWE-770） | Denial of Service with Server Components | 9.3.4-canary.0 — 16.3.0-canary.5 | `^16.1.7` ⚠️ 在范围内 | `npm audit fix` 可升 minor |
+| `postcss` | **moderate** | [GHSA-qx2v-qp2m-jg93](https://github.com/advisories/GHSA-qx2v-qp2m-jg93)（CWE-79） | XSS via Unescaped `</style>` in CSS Stringify | < 8.5.10 | 通过 `next` 间接引入 | 升级 `next` 即随之解决 |
+
+**判定（对照设计 §2.3 阈值）：**
+
+- Runtime `high` advisory：**1** → 🔴 **红线触发**（目标 0 / 红线 ≥ 1）→ **sub-tier 6.4 候选 (高)**
+- Runtime `critical` advisory：0 → ✅
+- Dev `high` advisory：0 → ✅（实际所有 high 都在 runtime 树）
+- 修复路径：`npm install next@latest` 或 `npm audit fix`，预估 S 工作量；但需 Pass 2 验证升级后 build / 测试 / E2E 不退化（Next 16 minor 版本之间通常稳定，但 16.1 → 16.3 期间引入了"middleware → proxy" 迁移建议——见 §1.1 build warning，可能也在 16.3 实际生效）。
+
+
 
 ### 4.2 DX 卷宗
 （Task 9 写入）
