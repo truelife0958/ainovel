@@ -157,3 +157,22 @@ raw=  9925B gz=  3113B  7f87a2b7b5fd9ec8.js
 ---------------------------------------------------
 SUM (concat then gzip):  raw=522,769B  gz=157,585B
 ```
+
+### A.3 Dev smoke (Task 3)
+
+冷启动到首次 200：**~2 秒**（loop iteration 2，第 1 次返回 503，第 2 次成功）。
+
+5 次连续探测 `/`：
+
+```
+probe-1: 200 0.106682s
+probe-2: 200 0.113101s
+probe-3: 200 0.089867s
+probe-4: 200 0.080690s
+probe-5: 200 0.079278s
+```
+
+- min = 79.3ms / max = 113.1ms / p50 ≈ 90ms / p95 ≈ 113ms
+- 全部 HTTP 200
+- 服务命令：`PORT=3299 npm run dev`
+- 关闭：`pkill -P` + `kill`，二次探测 = `DEAD`
