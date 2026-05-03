@@ -671,3 +671,33 @@ $ env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy \
 **F5 进 backlog**：等 Turbopack 改进 next/dynamic 优化后重测，或专门迁回 webpack 模式做对比测量。
 
 **作为 polish-tier-6.1 tag 的内容**：本 sub-tier 是"调查 + 决定不动"的合法收尾，符合设计 §2.6 失败策略（"红了 revert 不硬推"）。tag 的存在是为了让 git history 留下"调查过 6.1 + 结论"的可追溯记录。
+
+---
+
+## 8. Pass 2 闭环汇总
+
+| sub-tier | tag | 主要修复 finding | 关键验收 |
+|----------|-----|------------------|----------|
+| 6.2 a11y | `polish-tier-6.2` | F2 `aria-allowed-attr` × 2 + F10 `page-has-heading-one` + F1 中 3 个 a11y E2E | axe critical+serious=0；E2E dark-mode×2 + export 由红转绿 |
+| 6.4 安全 + DX | `polish-tier-6.4` | F3 next high + F4 postcss + F11 HTTP_PROXY + F12 analyzer + F15 错误 CTA | npm audit total=0；E2E 不需 unset；新测 actions.test 强化 |
+| 6.3 测试覆盖 | `polish-tier-6.3` | F7 state.js branch + F8 prompts stmt | Stmt 83.13→**88.21%**；Branch 68.6→**72.43%** |
+| 6.1 性能 | `polish-tier-6.1` (已调查) | F5 page-load (进 backlog) | dynamic 在 Turbopack 反负；F5 待 Turbopack 改进或迁 webpack 后重测 |
+
+**修复 finding 数**：13 / 17（4 进 backlog：F1, F5, F13, F17）。
+
+**最终硬指标**（commit `<待 Step 15.4 回填>`）：
+
+| 指标 | 数值 | 备注 |
+|------|------|------|
+| `tsc --noEmit` exit | 0 | I1 ✓ |
+| `npm test` | **144 / 144 pass** | I2 ✓（+ 10 新测试 vs Pass 1） |
+| `npm run build` | clean | I3 ✓（含 1 条 middleware deprecation warning） |
+| `npm run test:e2e` | 4 passed / 1 failed (app-smoke F1 backlog) / 6 skipped (graceful) | I5 ✓ |
+| `npm audit --omit=dev` | 0 advisories | 6.4 闭环 |
+| 运行时依赖 | next / react / react-dom 三件套 | I4 ✓ |
+| Statement coverage | 88.21% | 6.3 闭环 |
+| Branch coverage | 72.43% | 同上 |
+| axe critical / serious | 0 / 0 | 6.2 闭环；moderate page-has-heading-one 也已消 |
+| First Load JS gzipped | 168 KB | F5 backlog；其中 14 KB 来自 6.4 next 升级 |
+
+**README 徽章**：`polish-tier-5` → `polish-tier-6 audited`；tests `134 → 144`。

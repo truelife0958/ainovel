@@ -3,9 +3,9 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6.svg)](https://www.typescriptlang.org/)
-[![Tests](https://img.shields.io/badge/tests-134%20passing-brightgreen.svg)](./CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-144%20passing-brightgreen.svg)](./CHANGELOG.md)
 [![Type-check](https://img.shields.io/badge/tsc-0%20errors-brightgreen.svg)](./CHANGELOG.md)
-[![Polish](https://img.shields.io/badge/polish-tier%205-gold.svg)](./CHANGELOG.md)
+[![Polish](https://img.shields.io/badge/polish-tier%206%20audited-gold.svg)](./docs/superpowers/specs/2026-05-03-tier-6-audit-report.md)
 
 基于 Next.js 16 + React 19 的长篇网文 AI 辅助创作系统，支持 200 万字量级连载创作。
 
@@ -121,19 +121,32 @@ docs/
 
 ## 质量基线
 
-- **测试**：134 unit / component + 6 Playwright E2E
+- **测试**：144 unit / component + 6 Playwright E2E
 - **TypeScript**：`npx tsc --noEmit` 0 errors（strict mode）
-- **构建**：15 routes + middleware，首屏 ~80KB
-- **a11y**：所有 E2E 末尾 axe-core 无 critical violation
+- **构建**：15 routes + middleware，首屏 ~168KB gzipped
+- **a11y**：所有 E2E 末尾 axe-core critical / serious **0** violation；moderate 仅 1 项已记录
 - **运行时依赖**：3 个（next / react / react-dom）
 
-**工具链**：node:test · `@testing-library/react` · `linkedom` · Playwright · `@axe-core/playwright`（均为 devDep）
+**工具链**：node:test · `@testing-library/react` · `linkedom` · Playwright · `@axe-core/playwright` · `c8` · `@next/bundle-analyzer`（均为 devDep）
+
+### Tier 6 经审凭证（2026-05-03）
+
+经过两段闭环审计 + 修复（[Tier 6 Audit Report](./docs/superpowers/specs/2026-05-03-tier-6-audit-report.md)），数字以独立运行的客观数据替换自评：
+
+- E2E：6 specs / 11 用例，**4 passed / 1 failed (app-smoke selector backlog) / 6 skipped (graceful)**
+- axe-core critical + serious：**0**（自查临时 spec extended scan 也是 0）
+- npm audit：runtime + full **all 0**（high / moderate / critical / low / info 全清零）
+- Statement coverage：**88.21%** / Branch coverage：**72.43%**
+- page-load gzipped：**168 KB**（受 next 16.2.4 框架体积影响超 130 KB 目标，F5 进 backlog）
+- TypeScript / npm test / build：**全绿**
+
+详细 17 finding 与 4 sub-tier（6.1–6.4）闭环结果见报告 §5–7。
 
 ---
 
 ## 打磨过程
 
-本项目经历 5 轮 **risk-tiered polish**（见 ADR 0005），每轮独立 tag 可回滚：
+本项目经历 6 轮 **risk-tiered polish**（见 ADR 0005），每轮独立 tag 可回滚：
 
 | Tier | 主题 | Tag |
 |------|------|-----|
@@ -143,6 +156,11 @@ docs/
 | 4a | 零行为清理（死代码删除 / withRouteLogging / useModalResource） | `polish-tier-4a` |
 | 4b | 结构重构（adapter 策略 / prompts 拆分 / workspace hooks） | `polish-tier-4b` |
 | 5 | 细化精简（无效 state 删除 / EditorSurface / BatchProgressSection） | `polish-tier-5` |
+| **6** audit | **跑通取证**（11 步审计：build / dev / E2E / axe extended / coverage / bundle / npm audit / DX） | `tier-6-audit` |
+| **6.2** | a11y 修复（dropdown ARIA + visually-hidden h1 → axe critical=0） | `polish-tier-6.2` |
+| **6.4** | 安全 + DX（next 升级解 high CVE + postcss override + proxy strip + key 错误 CTA） | `polish-tier-6.4` |
+| **6.3** | 测试覆盖（state.js 6 分支测 + prompts 覆盖；coverage +5pp） | `polish-tier-6.3` |
+| **6.1** | 性能（已调查；Turbopack dynamic 反负，F5 进 backlog） | `polish-tier-6.1` |
 
 详细过程见 [CHANGELOG](./CHANGELOG.md)。设计文档位于 `docs/superpowers/specs/`，实施计划位于 `docs/superpowers/plans/`。
 
