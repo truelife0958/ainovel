@@ -91,7 +91,52 @@ Route (app)
 ## 3. 测试覆盖与缺口
 
 ### 3.1 E2E 跑（mock AI，不含 live-ai）
-（Task 4 写入）
+
+**重大 finding**：实测结果与 README 标榜的 *"134 tests passing · 6 Playwright E2E specs · axe-core critical = 0"* 之间存在显著漂移。
+
+| 指标 | README 标榜 | 实测（2026-05-03） |
+|------|-------------|---------------------|
+| 单元 + 组件测试 | 134 passing | ✅ **134/134** 一致 |
+| E2E specs | 6 | 实际有 **7 个 spec 文件**（含 `app-smoke`），共 **11 个 test 用例** |
+| E2E pass / fail / skip | 全绿 | **1 passed / 4 failed / 6 skipped** ⚠️ |
+| axe-core critical | 0 violation | **3 处 critical 违例触发失败** ⚠️ |
+
+**11 个测试用例的明细**
+
+| # | spec | 用例 | 结果 | 详情 |
+|---|------|------|------|------|
+| 1 | `app-smoke.spec.mjs:45` | legacy routes redirect to home | ✓ pass (5.3s) | — |
+| 2 | `app-smoke.spec.mjs:52` | covers toolbar, modals, editor bottom actions, and API-backed persistence | ✘ FAIL (21.5s) | `TimeoutError`：`.project-row` 内 `getByRole('button', { name: '切换' })` 10s 内未找到。`app-smoke.spec.mjs:76`。**非 a11y 错误**，UI 选择器漂移或项目列表为空 |
+| 3 | `batch-generate.spec.mjs` | 3-chapter mocked run completes | - SKIP | 跳过原因待查（疑似缺少 mock 上游或前置数据） |
+| 4 | `dark-mode.spec.mjs:5` | toggle persists across reload | ✘ FAIL (2.6s) | **axe critical**：`aria-allowed-attr` × 2 nodes（`Elements must only use supported ARIA attributes`） |
+| 5 | `dark-mode.spec.mjs:20` | system preference honored when no manual preference stored | ✘ FAIL (2.0s) | 同上 axe critical `aria-allowed-attr` × 2 |
+| 6 | `export.spec.mjs:5` | opens and lists two items when a project exists | ✘ FAIL (2.1s) | 同上 axe critical `aria-allowed-attr` × 2（点开 export 菜单后） |
+| 7 | `live-ai.spec.mjs:23` | @live-ai enables AI actions ... | - SKIP | `@live-ai` 标签默认过滤（无 API key） |
+| 8 | `live-ai.spec.mjs:65` | @live-ai review repair loop ... | - SKIP | 同上 |
+| 9 | `live-ai.spec.mjs:109` | @live-ai outline planning ... | - SKIP | 同上 |
+| 10 | `reference-analysis.spec.mjs` | renders mocked analysis output | - SKIP | 跳过原因待查 |
+| 11 | `scaffold-generate.spec.mjs` | generates checked items | - SKIP | 跳过原因待查 |
+
+**总耗时**：3.1 分钟（其中失败 + 重试占用大量时间）
+
+**非 critical（moderate）axe 提示**（来自 helper console.warn，未触发失败）：
+
+```
+[a11y:dark-mode:toggle]  1 non-critical finding(s): page-has-heading-one(moderate) ×1
+[a11y:dark-mode:system]  1 non-critical finding(s): page-has-heading-one(moderate) ×1
+[a11y:export:menu-open]  1 non-critical finding(s): page-has-heading-one(moderate) ×1
+```
+
+**判定（对照设计 §2.3 阈值）：**
+- E2E 全绿（不变量 I5）：**🔴 失败** — 4 个用例 fail。这是必须立即记入 finding 的高优先级问题。
+- axe-core critical：3 处违例（每处 2 nodes）→ **🔴 红线** （目标 0 / 红线 ≥ 1）→ **触发 sub-tier 6.2 候选 (高)**
+- axe-core moderate：3 条 `page-has-heading-one`（每页一条）→ **🟡 警告区**（< 5 条但已有连续 3 处）→ **触发 sub-tier 6.2 候选 (中)**
+- E2E 选择器漂移（`app-smoke:76` 找不到"切换"按钮）：**🔴 行为回归** → **触发 sub-tier 6.3 候选 (高)**
+- 6 个用例被 skip（其中 3 个非 live-ai 应能跑）：**🟡 覆盖率黑洞** → **触发 sub-tier 6.3 候选 (中)**
+
+**结论**：Pass 2 sub-tier 6.2 + 6.3 已被强证据触发。具体修复（包括 `aria-allowed-attr` 的根因定位、`app-smoke:76` 选择器修复、batch/reference/scaffold 三 spec 跳过原因） 留给 Pass 2 各 sub-tier 实施计划。
+
+**注意**：本次 E2E 运行需要 `env -u HTTP_PROXY HTTPS_PROXY http_proxy https_proxy`，否则 Playwright 的 webServer 端口探测因系统级 HTTP 代理（`http://127.0.0.1:10808`）返回 503 而误判端口已占用 → spec 全部不执行。这一点也是 DX finding（详见 §4.2）。
 
 ### 3.2 单元 + 组件覆盖率（`npm run test:coverage`）
 （Task 6 写入）
@@ -176,3 +221,21 @@ probe-5: 200 0.079278s
 - 全部 HTTP 200
 - 服务命令：`PORT=3299 npm run dev`
 - 关闭：`pkill -P` + `kill`，二次探测 = `DEAD`
+
+### A.4 E2E (Task 4)
+
+```
+$ env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy \
+      WEBNOVEL_WRITER_E2E_DIRECT=1 WEBNOVEL_WRITER_E2E_PORT=3300 \
+      npm run test:e2e
+
+  4 failed
+    tests/e2e/app-smoke.spec.mjs:52:3 › ... ─────
+    tests/e2e/dark-mode.spec.mjs:5:3 ──────────────
+    tests/e2e/dark-mode.spec.mjs:20:3 ─────────────
+    tests/e2e/export.spec.mjs:5:3 ─────────────────
+  6 skipped
+  1 passed (3.1m)
+```
+
+**注**：第一次运行时 `npm run test:e2e` 因 `HTTP_PROXY=http://127.0.0.1:10808` 系统代理，导致 Playwright webServer 端口探测对所有 127.0.0.1 端口收到 503，误判"端口已占用"立即退出。`env -u` 清掉代理后才能跑。这一点本身也是 finding（详见 §4.2 DX）。
