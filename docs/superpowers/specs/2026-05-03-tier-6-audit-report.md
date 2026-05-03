@@ -219,7 +219,70 @@ Import trace:
 **注意**：本次 E2E 运行需要 `env -u HTTP_PROXY HTTPS_PROXY http_proxy https_proxy`，否则 Playwright 的 webServer 端口探测因系统级 HTTP 代理（`http://127.0.0.1:10808`）返回 503 而误判端口已占用 → spec 全部不执行。这一点也是 DX finding（详见 §4.2）。
 
 ### 3.2 单元 + 组件覆盖率（`npm run test:coverage`）
-（Task 6 写入）
+
+**c8 配置**：`--include=lib --include=app --exclude=tests --exclude=**/*.test.mjs`
+
+**Coverage summary**
+
+```
+Statements   : 83.13% ( 2952/3551 )
+Branches     :  68.60% (  518/ 755 )
+Functions    : 88.62% (  148/ 167 )
+Lines        : 83.13% ( 2952/3551 )
+```
+
+**重要观察**：c8 只采到 `lib/` 下的文件覆盖率。`app/api/**/route.ts` 由于：① 是 TS 文件，运行时由 Next 服务端编译；② 单元测试不直接 import；③ 实际通过 Playwright E2E 运行（c8 没包到 E2E 进程）—— 没有进入覆盖率统计。这是**统计盲区**而非"未覆盖"，但属于一项 reporting finding。
+
+**关键目录覆盖率（lib/ai / lib/projects / lib/settings 等）**
+
+| 目录 | Stmt | Branch | Func | Line |
+|------|------|--------|------|------|
+| lib | 100% | 85.71% | 100% | 100% |
+| lib/ai | 77.64% | **73.29%** | 67.5% | 77.64% |
+| lib/ai/prompts | 56.58% | **37.5%** | 81.81% | 56.58% |
+| lib/editor | 100% | 100% | 100% | 100% |
+| lib/projects | 90.33% | **62.9%** | 97.5% | 90.33% |
+| lib/review | 100% | 100% | 100% | 100% |
+| lib/settings | 84.95% | 75% | 90.9% | 84.95% |
+| lib/ui | 100% | 100% | 100% | 100% |
+
+**Branch coverage 最低 10 文件**
+
+| 排名 | branch% | 文件 | 备注 |
+|------|--------:|------|------|
+| 1 | 22.72% | `lib/ai/prompts/_shared.js` | 共享 prompt 工具，分支基本未走 |
+| 2 | 27.77% | `lib/projects/state.js` | state 工具，分支盲点 |
+| 3 | 28.35% | `lib/projects/review.js` | review 序列化逻辑分支 |
+| 4 | 30.76% | `lib/ai/prompts/chapter.js` | 章节 prompt 分支 |
+| 5 | 45.94% | `lib/ai/providers.js` | 9-provider adapter，多数分支未走 |
+| 6 | 50.00% | `lib/ai/prompts/outline.js` | outline prompt 分支 |
+| 7 | 50.00% | `lib/projects/workspace.js` | workspace 状态机分支 |
+| 8 | 57.14% | `lib/projects/file-lock.js` | 文件锁错误路径 |
+| 9 | 66.66% | `lib/projects/context.js` | 上下文构建分支 |
+| 10 | 66.66% | `lib/projects/documents.js` | document IO 分支 |
+
+**Statement coverage 极低文件**（statement < 10%，意味着函数体几乎从未被调用）
+
+| stmt% | 文件 | 备注 |
+|------:|------|------|
+| 2.29% | `lib/ai/prompts/setting.js` | setting prompt 模块，单测无 import |
+| 5.88% | `lib/ai/prompts/reference.js` | reference prompt 模块，单测无 import |
+
+> 这两个文件 branch% 显示 100% 是因为分母极小（只跑过 default export 行），不代表真覆盖。
+
+**判定（对照设计 §2.3 阈值）：**
+
+- Statement coverage（`lib/` 整体）：**83.13%** → ✅ 满足 ≥ 80% 目标。
+- Statement coverage（`app/api`）：**未测量**（c8 盲区）→ 🟡 sub-tier 6.3 候选 (中)：把 app/api 路由放进可测范围（要么改 unit-level，要么把 c8 包到 E2E 进程）。
+- Branch coverage（`lib/ai`）：**73.29%** → 🟡 just below 75% target，目标线擦肩；不触发红线。
+- Branch coverage（`lib/projects`）：**62.9%** → 🟡 警告区（介于 60% 红线和 75% 目标之间）；优先级中等。
+- Branch coverage（`lib/api`）：n/a，本仓不存在 `lib/api` 子目录（API 路由都在 `app/api/**`）—— 设计文档此项原本指错；改为读 `app/api` 但因 c8 盲区也无法直接量化。
+- 极低覆盖文件：5 个 branch < 50%，2 个 statement < 10% → **触发 sub-tier 6.3 候选 (高)**，可针对性补 7 个文件的单测，预估 M 级工作量。
+- E2E 路径缺口：见 §3.1 已记录的 4 fail + 6 skip → 与 6.3 共修。
+
+**6.3 触发结论**：sub-tier 6.3 候选成立，主因是 §3.1 的 E2E 红 + §3.2 的 7 个文件低 branch；ROI 中。
+
+---
 
 ## 4. 安全 & DX
 
