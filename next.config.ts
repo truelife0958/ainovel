@@ -1,3 +1,5 @@
+import withBundleAnalyzerFactory from "@next/bundle-analyzer";
+
 const nextConfig = {
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   outputFileTracingRoot: __dirname,
@@ -18,4 +20,9 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+const withBundleAnalyzer = withBundleAnalyzerFactory({
+  enabled: process.env.ANALYZE === "1",
+  openAnalyzer: false,
+});
+
+export default withBundleAnalyzer(nextConfig);

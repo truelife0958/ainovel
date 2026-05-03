@@ -7,6 +7,7 @@
     "dev": "node ./node_modules/next/dist/bin/next dev",
     "build": "node ./node_modules/next/dist/bin/next build",
     "start": "node ./node_modules/next/dist/bin/next start",
+    "analyze": "ANALYZE=1 node ./node_modules/next/dist/bin/next build",
     "test": "node --import=./tests/setup/dom.mjs --test tests/*.test.mjs tests/**/*.test.mjs",
     "test:e2e": "node ./scripts/run-playwright-e2e.mjs",
     "test:e2e:headed": "node ./scripts/run-playwright-e2e.mjs --headed",
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.2",
+    "@next/bundle-analyzer": "^16.2.4",
     "@playwright/test": "^1.55.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",

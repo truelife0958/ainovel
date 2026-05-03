@@ -82,8 +82,88 @@ Route (app)
 
 > ⚠ 注意：本节字节数是"page-load chunk 集合 concat 后 gzip"，与浏览器实际并行下载多份 .js.gz 的体积有偏差（实际可能略小，因为浏览器有缓存命中、HTTP/2 头压缩）。Task 5 用 `@next/bundle-analyzer` 的 client.html `parsedSize` 与 `gzipSize` 字段做精确归因。
 
-### 1.2 Bundle composition（`ANALYZE=1 npm run build`）
-（Task 5 写入）
+### 1.2 Bundle composition（`ANALYZE=1 npm run build` + `--webpack`）
+
+**重要兼容性发现**：`@next/bundle-analyzer@16.2.4` 是 webpack-only 插件；Next 16 默认用 **Turbopack** 构建，因此 `ANALYZE=1 npm run build` 时插件被静默忽略，**不产出任何 html 报告**。需要 `next build --webpack` 显式切换才能让 analyzer 生效。
+
+切到 `--webpack` 后 build 在 TypeScript / 静态页生成阶段失败：
+
+```
+> Build failed because of webpack errors
+
+ModuleParseError: Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+
+Import trace:
+  node:path
+  ./lib/utils.js
+  ./components/creative-workspace.tsx
+```
+
+但 `@next/bundle-analyzer` 在 webpack 失败之前已经写完了 3 份 html 报告，仍可用于模块归因。**生产实际跑的是 Turbopack 路径，154 KB gz 是真实的产出大小（§1.1）；以下数据用于 attribution 而非生产体积**。
+
+**Top 10 client modules（webpack analyzer / `static/chunks/*.js`）**
+
+| parsed | gzip | chunk | source |
+|-------:|-----:|-------|--------|
+| 193.8 KB | **60.8 KB** | `4bd1b696-*.js` | `node_modules/next/dist/compiled/react-dom/cjs` |
+| 185.1 KB | **58.3 KB** | `framework-*.js` | `node_modules` |
+| 182.9 KB | **47.7 KB** | `794-*.js` | `node_modules` |
+| 130.0 KB | **37.0 KB** | `main-*.js` | `node_modules` |
+| 74.1 KB | **23.5 KB** | `app/page-*.js` | `components/` |
+| 8.4 KB | 3.4 KB | `500-*.js` | `node_modules/next/dist` |
+| 0.4 KB | 0.3 KB | `app/global-error-*.js` | `app/` |
+| 0.3 KB | 0.3 KB | `app/error-*.js` | `app/` |
+| 0.0 KB | 0.0 KB | `app/layout-*.js` | `app/` |
+
+**Top 10 server / nodejs modules**
+
+| parsed | gzip | chunk | source |
+|-------:|-----:|-------|--------|
+| 270.4 KB | 65.2 KB | `256.js` | `node_modules` |
+| 138.2 KB | 37.9 KB | `445.js` | `node_modules/next/dist` |
+| 107.9 KB | 34.9 KB | `app/page.js` | entry modules (concatenated) |
+| 30.4 KB | 10.2 KB | `868.js` | `node_modules/next/dist` |
+| 25.5 KB | 10.2 KB | `813.js` | `node_modules/next/dist` |
+| 23.0 KB | 7.7 KB | `app/_global-error/page.js` | entry |
+| 22.4 KB | 7.5 KB | `app/_not-found/page.js` | entry |
+| 10.3 KB | 4.5 KB | `433.js` | `lib/` |
+| 4.7 KB | 2.2 KB | `app/api/projects/current/ideation/route.js` | `lib/` |
+| 4.1 KB | 2.0 KB | `app/api/projects/current/route.js` | `lib/` |
+
+**Edge runtime middleware**
+
+| parsed | gzip | chunk | source |
+|-------:|-----:|-------|--------|
+| 58.2 KB | 19.1 KB | `middleware.js` | `node_modules/next/dist` |
+
+**模块归因（推断 §1.1 154 KB gz 的构成）**
+
+> 注：webpack 与 Turbopack 的 chunking 策略不同，下表是粗略推断而非精确映射。
+
+| 来源 | 估算占比（gz） | 控制成本 |
+|------|--------------:|----------|
+| react-dom | ~60 KB | ⚠️ 框架核心，不能砍 |
+| Next 框架 chunk | ~58 KB | ⚠️ 框架核心，不能砍 |
+| polyfills | ~39 KB | 🟡 可以瘦身（targeting 现代 browser 减 polyfill） |
+| 业务 page + components | ~23 KB | ✅ 可以拆分（dynamic import 重型 modal） |
+| 其它 | ~10 KB | — |
+| **合计** | **~190 KB**（gz 之和，未压缩比 Turbopack 总 gz 大；因 webpack 与 Turbopack chunk 划分差异） | |
+
+**判定（对照设计 §2.2 触发条件）：**
+
+设计 §2.2 规定 sub-tier 6.1 触发条件：① 任一路由 First Load JS 超 §2.3 红线；② 单 module 占该路由 chunk ≥ 30% 且不属于 `next` / `react` / `react-dom` 框架包。
+
+- ① 已在 §1.1 触发：154 KB gz > 130 KB 红线 → **6.1 候选成立**
+- ② 单 module 占比 ≥ 30%：
+  - `react-dom` 60.8 / 154 ≈ 39%（属框架包，**不算**）
+  - `framework` 58.3 / 154 ≈ 38%（属 next 框架，**不算**）
+  - polyfills 39.5 / 154 ≈ 26%（小于 30% 阈值，且属浏览器 polyfill，归类为框架）
+  - 业务代码（components）23.5 KB ≈ 15%
+  - 没有非框架包 ≥ 30% 单 module → **②不触发**
+- 结论：sub-tier 6.1 仅由①触发，根因是页面常载量本身偏大（主要是 polyfills + framework + react-dom 的组合累计），缺乏单点 30%+ "巨无霸"。优化空间偏向降级 polyfill 目标 + 拆分页面级 dynamic import；改造 ROI 中等。
+
+**附加 finding**：`lib/utils.js` 用 `import "node:path"`（明确指定 node 协议）；该 URI 在 Turbopack 上无碍，但 webpack 默认不支持，导致 `next build --webpack` 失败。这是 sub-tier 6.4 候选（DX / 兼容性）。
 
 ## 2. a11y
 （Task 8 写入）
