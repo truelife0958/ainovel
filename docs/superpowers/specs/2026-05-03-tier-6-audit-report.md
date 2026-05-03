@@ -368,7 +368,72 @@ Lines        : 83.13% ( 2952/3551 )
 
 
 ### 4.2 DX 卷宗
-（Task 9 写入）
+
+**代码中引用的 envvar（去重）**
+
+```
+ANALYZE
+COMPUTERNAME
+HOSTNAME
+NEXT_DIST_DIR
+NODE_ENV
+SKIP_API_KEY_VALIDATION
+TRUST_PROXY
+WEBNOVEL_DISABLE_PROMPT_CACHE
+WEBNOVEL_WRITER_CONFIG_ROOT
+WEBNOVEL_WRITER_KEY
+```
+
+**README ↔ 代码 envvar 同步差异**
+
+- 在代码但不在 README：6 个
+  - `ANALYZE` ← Task 5 新增（Task 10 收尾会补 README）
+  - `COMPUTERNAME` / `HOSTNAME` ← 用作项目目录默认值的回退（OS 平台差异），用户不直接用
+  - `NEXT_DIST_DIR` ← `next.config.ts` 用，Playwright 隔离构建路径用，user-facing 度低
+  - `NODE_ENV` ← 标准 Node 变量，框架自己处理，无需 README 提及
+  - `SKIP_API_KEY_VALIDATION` ← 测试逃生通道（`lib/settings/encryption.js:102`，跳过 OpenAI/Anthropic key 格式校验）—— 用户**不应该**用，但若要给开发者文档化也可以
+- 在 README 但代码无引用：**0 个**（同步无遗漏）
+
+**未配置 API key 时的错误文案**
+
+错误抛出点：`lib/ai/actions.js:133`
+```js
+throw new Error(`Active provider ${provider} is missing an API key`);
+```
+
+- 文案为英文 + 仅描述事实，**未引导用户去 Connection Wizard**。
+- 没有"点击这里打开配置"的 CTA。
+
+Connection Wizard 入口：`components/connection-wizard.tsx`，由 `ConnectionModal` 包装；首页 toolbar 触发，但缺 key 时的错误 toast / banner **不直接 deep-link 到 wizard**。
+
+**额外 DX 痛点（来自 Pass 1 实操遇到的）**
+
+1. **系统级 HTTP 代理拦截 E2E**（§3.1 已记）：
+   - `HTTP_PROXY=http://127.0.0.1:10808` 之类的代理变量会让 Playwright 的 `webServer.url` 端口探测对所有 `127.0.0.1:N` 端口收到 503，误判端口已占用 → spec 全部不执行。
+   - 当前 `package.json` `test:e2e` 不做 `env -u`；用户首次跑 E2E 直接踩坑，且错误信息（`is already used`）误导。
+   - 建议修复：`scripts/run-playwright-e2e.mjs` 启动子进程前显式 `delete env.HTTP_PROXY` 等 4 个变量，或在 README "测试" 段写明遇到 503 时的 workaround。
+
+2. **E2E 端口随机化 PID-based 容易碰撞旧残留**（§3.1 + 4.1 触发链路）：
+   - 现状：`run-playwright-e2e.mjs:16` 用 `3201 + (process.pid % 2000)` 计算 dev port。
+   - 风险：上一次 E2E 异常退出未释放 `next dev` 时，新 PID 可能恰好命中同一个端口 → 残留进程冲突。
+   - 建议修复：选择"扫描可用端口"或更大随机域避免快速碰撞。
+
+3. **Next 16 + Turbopack 与 `@next/bundle-analyzer` 不兼容**（§1.2 已记）：
+   - `npm run analyze` 静默无输出（不报错也不产 html）。
+   - 建议修复：`next.config.ts` 在 `ANALYZE=1` 时打印一条 `console.warn`：*"Note: bundle analyzer is webpack-only; Next 16 default Turbopack ignores this wrapper. Use `next build --webpack` to regenerate reports."*
+
+4. **Build warning 文档同步**（§1.1 已记）：
+   - `⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.` —— 当前 `middleware.ts` 仍按旧约定，README / ARCHITECTURE 也都还称为 "middleware"。建议在 README 加 footer note 标"已知遗留警告 - 待 6.4 迁移"。
+
+**判定（对照设计 §2.3 / sub-tier 6.4 触发条件）：**
+
+- envvar 同步差异 6 条（其中 1 条 `ANALYZE` Task 10 自动补）→ 🟡 5 条遗漏
+- 错误文案缺 CTA / deep-link → 🟡 中等 DX 痛点
+- HTTP_PROXY 拦截 E2E + 端口碰撞 + analyzer 静默 + middleware deprecation → 🔴 多个具体可改 DX 缺陷叠加
+
+→ **sub-tier 6.4 候选成立 (高，预估 M 工作量)**
+
+
 
 ## 5. Findings 汇总（按 severity / ROI 排序）
 （Task 10 写入）
