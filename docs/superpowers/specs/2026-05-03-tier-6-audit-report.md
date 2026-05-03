@@ -2,8 +2,8 @@
 
 **对应设计**：`docs/superpowers/specs/2026-05-03-tier-6-design.md`
 **基线 commit**：`dea7eb1`（`docs(spec): Tier 6 design`）+ `b8b0455`（`docs(plan): Pass 1 plan`）
-**Pass 1 commit**：（Task 10 完成后填写）
-**Pass 1 tag**：`tier-6-audit`（Task 10 完成后填写）
+**Pass 1 commit**：`56c61be`（`docs(audit): Tier 6 Pass 1 closeout — 17 findings + 4 sub-tier candidates`）
+**Pass 1 tag**：`tier-6-audit`
 
 ---
 
