@@ -685,7 +685,7 @@ $ env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy \
 
 **修复 finding 数**：13 / 17（4 进 backlog：F1, F5, F13, F17）。
 
-**最终硬指标**（commit `<待 Step 15.4 回填>`）：
+**最终硬指标**（commit `c35e71e`，tag `tier-6-closed`）：
 
 | 指标 | 数值 | 备注 |
 |------|------|------|
