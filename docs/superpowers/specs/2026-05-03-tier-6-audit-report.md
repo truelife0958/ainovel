@@ -631,3 +631,23 @@ $ env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy \
 3. `lib/ai/actions.js` 的"missing API key"错误对象带 `err.code = "AI_PROVIDER_MISSING_KEY"`，文案改为中文 + 引导"在「连接设置」中配置"；`tests/ai/actions.test.mjs` 已有测试加强为同时断言 `err.code` 与中文文案。
 4. `npm install next@latest` → 16.2.4（不再触发 high CVE）；`package.json` `overrides.postcss: ^8.5.10` 解 postcss 间接依赖 XSS。
 5. README 移除 Pass 1 加的 HTTP_PROXY 临时 workaround note，改写为说明"已自动处理"。
+
+### 7.6.3 sub-tier 6.3 测试覆盖（tag `polish-tier-6.3`）
+
+| finding | before | after | verify |
+|---------|--------|-------|--------|
+| F1 `app-smoke:52` selector | TimeoutError | **进 backlog**（更深的 modal 状态分支问题，非简单 selector 能修；plan §"失败情景预案"第 1 行触发） | 见 §6 backlog 节 |
+| F6 batch / reference / scaffold spec skip | 3 spec graceful-skip | **文档化**（条件 skip 是 design 行为，加 mock 成本超出 ROI ≥ M 阈值） | 见 §6 backlog 节 |
+| F7 lib/projects/state branch% | 27.77% | **77.27%** ✅（远超目标 ≥ 50%） | `npm run test:coverage` |
+| F7 lib/ai/prompts/_shared branch% | 22.72% | **68%** ✅（>50%）| 同上 |
+| F8 lib/ai/prompts/setting stmt% | 2.29% | **100%** ✅（5 modes + unsupported branch 全覆盖） | 同上 |
+| F8 lib/ai/prompts/reference stmt% | 5.88% | **100%** ✅ | 同上 |
+| 总体覆盖率提升 | Stmt 83.13% / Branch 68.6% | **Stmt 88.21% / Branch 72.43%** | `npm run test:coverage` summary |
+
+**修复方式**：
+1. 新建 `tests/projects/state-branches.test.mjs` —— 6 个测试覆盖 state.js 的 5 个分支：ENOENT / 损坏 JSON / 数组 / null / 正常解析 / 写入回读。
+2. 新建 `tests/ai/prompts-coverage.test.mjs` —— 4 个测试覆盖 setting.js 5 modes + unsupported branch + reference.js 正常 + 空 guardrails。
+
+**进 backlog（不做）**：
+- F1 `app-smoke:52`：实际症状不止 selector 漂移；当 titleField 与 .project-row 都不可见时测试卡住，根因可能是模态创建/列表态切换的初始化时序问题，需要重新设计该 spec，超出 6.3 简单 selector 修复范围。
+- F6 中 `batch-generate.spec.mjs` / `reference-analysis.spec.mjs`：toolbar 的 "批量生成" / "参考借鉴" 按钮可见性由 SSR-time `aiAvailable` 决定，仅靠 `page.route()` mock `/api/settings/providers` 不足以让 SSR 看到（需要先在 fs 写入 provider config），mock 成本超过 ROI ≥ M 阈值。`scaffold-generate` 同因，本轮一并保留 graceful-skip 设计（不是 bug，是 graceful degradation）。

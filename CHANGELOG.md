@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-05-03 — Tier 6 Pass 2 / sub-tier 6.3（测试覆盖）
+
+### Added (test smoke)
+- `tests/projects/state-branches.test.mjs` — 6 个测试覆盖 `lib/projects/state.js`
+  的 5 个错误分支 + 1 个写入回读：state.json 缺失（ENOENT）、损坏 JSON、
+  数组、null、合法对象、updateProjectIdeation 写入并 trim 字段。
+  state.js branch% 由 27.77% 升至 **77.27%**。
+- `tests/ai/prompts-coverage.test.mjs` — 4 个测试覆盖
+  `lib/ai/prompts/setting.js`（5 modes + unsupported throw）+
+  `lib/ai/prompts/reference.js`（基本路径 + 空 guardrails）。
+  setting.js stmt% 由 2.29% 升至 **100%**；reference.js stmt% 由 5.88% 升至 **100%**。
+  总体覆盖率：Statements 83.13% → **88.21%** / Branches 68.6% → **72.43%**。
+
+### Backlog (deferred from §6 candidates)
+- **F1 `app-smoke:52`** — selector 修复尝试后 仍 TimeoutError；实际症状是模态
+  状态分支（titleField vs .project-row）双不可见，超出简单 selector 修复范围。
+  需要重设计该 spec 的项目 setup 流。
+- **F6 batch/reference/scaffold spec skip** — toolbar AI 按钮可见性由 SSR-time
+  `aiAvailable` 决定，仅 `page.route()` mock /api/settings/providers 不够。
+  graceful-skip 是 design 行为，不是 bug。本轮保留。
+
+### Tag
+- `polish-tier-6.3`
+
 ## 2026-05-03 — Tier 6 Pass 2 / sub-tier 6.4（安全 + DX）
 
 ### Fixed
