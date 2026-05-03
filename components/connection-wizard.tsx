@@ -250,6 +250,9 @@ export function ConnectionWizard({ initialConfig, onDirtyChange }: ConnectionWiz
               value={secrets.custom}
               onChange={(event) => updateSecret("custom", event.target.value)}
               placeholder={config.providers.custom.hasApiKey ? "已配置，留空不改动" : "输入 API Key"}
+              autoComplete="off"
+              spellCheck={false}
+              data-1p-ignore
             />
           </label>
           <label>
@@ -364,6 +367,9 @@ export function ConnectionWizard({ initialConfig, onDirtyChange }: ConnectionWiz
                       onChange={(event) => updateSecret(providerId, event.target.value)}
                       placeholder={providerFocus.apiKeyPlaceholder}
                       disabled={clearFlags[providerId]}
+                      autoComplete="off"
+                      spellCheck={false}
+                      data-1p-ignore
                     />
                   </label>
                   <label className="checkbox-row">

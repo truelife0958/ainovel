@@ -133,3 +133,58 @@ test("project summary helper accepts a workspace root by following the current-p
   assert.equal(summary.genre, "都市脑洞");
   assert.equal(summary.currentChapter, 8);
 });
+
+test("listProjectRoots skips workspaceRoot itself when it has package.json (Tier 6 finding A)", async () => {
+  const workspace = await makeWorkspace();
+  // Make the workspace look like a dev workspace (has package.json) AND
+  // accidentally contains .webnovel/state.json from earlier test pollution.
+  await writeFile(join(workspace, "package.json"), '{"name":"dev-workspace","version":"0.0.1"}', "utf8");
+  await mkdir(join(workspace, ".webnovel"), { recursive: true });
+  await writeFile(
+    join(workspace, ".webnovel", "state.json"),
+    JSON.stringify({ project_info: { title: "stale" }, progress: {} }),
+    "utf8",
+  );
+  // Add a real project under a subdirectory.
+  const realProject = await makeProject(workspace, "real-novel", "真实项目");
+
+  const roots = await listProjectRoots(workspace);
+
+  // The dev workspace itself must NOT be a candidate.
+  assert.ok(!roots.includes(workspace), `workspace root must not be a project candidate: ${roots.join(", ")}`);
+  assert.ok(roots.includes(realProject), "subdirectory project must still be discoverable");
+});
+
+test("resolveCurrentProjectRoot refuses workspace pointer pointing at dev workspace itself", async () => {
+  const workspace = await makeWorkspace();
+  await writeFile(join(workspace, "package.json"), '{"name":"dev-workspace","version":"0.0.1"}', "utf8");
+  await mkdir(join(workspace, ".webnovel"), { recursive: true });
+  await writeFile(
+    join(workspace, ".webnovel", "state.json"),
+    JSON.stringify({ project_info: { title: "stale" }, progress: {} }),
+    "utf8",
+  );
+  const realProject = await makeProject(workspace, "real-novel-b", "真实项目B");
+
+  // Pointer says "." (= workspace itself) which would otherwise match.
+  await mkdir(join(workspace, ".claude"), { recursive: true });
+  await writeFile(join(workspace, ".claude", ".webnovel-current-project"), ".", "utf8");
+
+  const resolved = await resolveCurrentProjectRoot(workspace);
+  assert.equal(resolved, realProject, "must fall through to subdir, not return workspace itself");
+});
+
+test("listProjectRoots includes workspaceRoot when it lacks package.json (legitimate writing-only directory)", async () => {
+  // A pure writing folder without package.json (e.g., user's drive root)
+  // SHOULD still be a candidate when it has a valid project layout.
+  const workspace = await makeWorkspace();
+  await mkdir(join(workspace, ".webnovel"), { recursive: true });
+  await writeFile(
+    join(workspace, ".webnovel", "state.json"),
+    JSON.stringify({ project_info: { title: "writing-only" }, progress: {} }),
+    "utf8",
+  );
+
+  const roots = await listProjectRoots(workspace);
+  assert.ok(roots.includes(workspace), "non-dev directory should still self-discover");
+});

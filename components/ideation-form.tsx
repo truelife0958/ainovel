@@ -78,7 +78,11 @@ export function IdeationForm({ initialIdeation, onClose, onDirtyChange }: Ideati
       <section className="summary-strip">
         <SummaryCard eyebrow="立项完成度">
           <strong>{completionCount} / {completionTotal}</strong>
-          <p className="muted">先补标题、题材、读者、主角和卖点。</p>
+          <p className="muted">
+            {completionCount >= completionTotal
+              ? "立项已完整，可以进入创作流程。"
+              : "先补标题、题材、读者、主角和卖点。"}
+          </p>
         </SummaryCard>
         <SummaryCard eyebrow="当前定位">
           <strong>{form.genre || "待定题材"}</strong>
