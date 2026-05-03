@@ -242,6 +242,11 @@ test("runDocumentAiAction fails clearly when active provider key is missing", as
         userRequest: "先规划本章",
         applyMode: "replace",
       }),
-    /api key/i,
+    (err) => {
+      assert.match(err.message, /api key/i, "message should mention api key");
+      assert.equal(err.code, "AI_PROVIDER_MISSING_KEY", "error must carry actionable code for UI deep-link");
+      assert.match(err.message, /连接设置/, "message should guide user toward Connection settings");
+      return true;
+    },
   );
 });

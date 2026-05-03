@@ -612,3 +612,22 @@ $ env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy \
 3. `app/globals.css` — 追加标准 `.visually-hidden` utility class。
 
 **验收**：临时 a11y spec count = 0；`npm run test:e2e` 由 `1 passed / 4 failed / 6 skipped` 变为 `4 passed / 1 failed / 6 skipped`。剩 1 fail（`app-smoke:52`）属 finding F1 selector 漂移，留 sub-tier 6.3 修。
+
+### 7.6.4 sub-tier 6.4 安全 + DX（tag `polish-tier-6.4`）
+
+| finding | before | after | verify |
+|---------|--------|-------|--------|
+| F11 HTTP_PROXY 拦截 E2E | env -u 才能跑 | scripts 自动剥离 4 proxy envvar | `npm run test:e2e` 不需手动 unset |
+| F12 analyzer Turbopack 静默 | 无任何提示 | `console.warn` 提示 use --webpack | `ANALYZE=1 npm run build` 输出 warn |
+| F15 缺 key 错误无 CTA | 英文，无引导 | 中文 + Connection 引导 + err.code | `actions.test.mjs` 强化断言 |
+| F3 next high CVE | next 16.1.7 GHSA-q4gf-8mx6-v5v3 | next 16.2.4 → CVE 数据库不再标 high | `npm audit --omit=dev` high=0 |
+| F4 postcss XSS moderate | postcss < 8.5.10 | npm `overrides.postcss: ^8.5.10` | `npm audit` total=0 |
+
+**最终 audit 状态**：`info=0 / low=0 / moderate=0 / high=0 / critical=0 / total=0` — 完全干净。
+
+**修复方式：**
+1. `scripts/run-playwright-e2e.mjs` 抽出 `makeChildEnv()` 帮助函数，自动 `delete env.HTTP_PROXY / HTTPS_PROXY / http_proxy / https_proxy`，两处 `run("node", ...)` 调用统一使用。
+2. `next.config.ts` 在 `ANALYZE === "1"` 且 `!NEXT_USE_WEBPACK` 时打印 warn 提示用户 Turbopack 不兼容。
+3. `lib/ai/actions.js` 的"missing API key"错误对象带 `err.code = "AI_PROVIDER_MISSING_KEY"`，文案改为中文 + 引导"在「连接设置」中配置"；`tests/ai/actions.test.mjs` 已有测试加强为同时断言 `err.code` 与中文文案。
+4. `npm install next@latest` → 16.2.4（不再触发 high CVE）；`package.json` `overrides.postcss: ^8.5.10` 解 postcss 间接依赖 XSS。
+5. README 移除 Pass 1 加的 HTTP_PROXY 临时 workaround note，改写为说明"已自动处理"。

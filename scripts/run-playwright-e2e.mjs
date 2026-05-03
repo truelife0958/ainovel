@@ -38,6 +38,22 @@ function resolveConfigRoot(root, env = process.env) {
   return resolve(env.WEBNOVEL_WRITER_CONFIG_ROOT || join(root, ".playwright", "config"));
 }
 
+/**
+ * Build a child-process env that strips HTTP proxy variables. With these
+ * set (common in WSL / containerized dev environments), Playwright's
+ * webServer port-availability probe routes through the proxy, which
+ * returns 503 for any unowned 127.0.0.1:N → false "port already used"
+ * → spec discovery aborts before a single test runs (Tier 6 finding F11).
+ */
+function makeChildEnv(extra) {
+  const env = { ...process.env, ...extra };
+  delete env.HTTP_PROXY;
+  delete env.HTTPS_PROXY;
+  delete env.http_proxy;
+  delete env.https_proxy;
+  return env;
+}
+
 async function main() {
   if (process.env.WEBNOVEL_WRITER_E2E_DIRECT === "1" || !shouldCopyDirectly(sourceRoot)) {
     const configRoot = resolveConfigRoot(sourceRoot);
@@ -45,12 +61,11 @@ async function main() {
     try {
       await run("node", ["./node_modules/@playwright/test/cli.js", "test", ...passthroughArgs], {
         cwd: sourceRoot,
-        env: {
-          ...process.env,
+        env: makeChildEnv({
           WEBNOVEL_WRITER_E2E_DIRECT: "1",
           WEBNOVEL_WRITER_E2E_PORT: devPort,
           WEBNOVEL_WRITER_CONFIG_ROOT: configRoot,
-        },
+        }),
       });
     } finally {
       await rm(configRoot, { recursive: true, force: true });
@@ -78,11 +93,10 @@ async function main() {
 
     await run("node", ["./scripts/run-playwright-e2e.mjs", ...passthroughArgs], {
       cwd: runtimeRoot,
-      env: {
-        ...process.env,
+      env: makeChildEnv({
         WEBNOVEL_WRITER_E2E_DIRECT: "1",
         WEBNOVEL_WRITER_E2E_PORT: devPort,
-      },
+      }),
     });
   } finally {
     await rm(runtimeRoot, { recursive: true, force: true });

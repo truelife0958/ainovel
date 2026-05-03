@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-05-03 — Tier 6 Pass 2 / sub-tier 6.4（安全 + DX）
+
+### Fixed
+- **Security (high CVE → 0)** — `next` 升级到 16.2.4，CVE 数据库不再标
+  GHSA-q4gf-8mx6-v5v3（DoS via Server Components）为该版本的 high 风险。
+- **Security (moderate XSS → 0)** — 加 `package.json` `overrides.postcss: ^8.5.10`
+  解 GHSA-qx2v-qp2m-jg93（PostCSS XSS via unescaped `</style>`）。
+  最终 `npm audit --omit=dev` 全清零（info/low/moderate/high/critical 都 0）。
+- **DX** — `scripts/run-playwright-e2e.mjs` 抽出 `makeChildEnv()` 帮助函数，
+  子进程 env 自动剥离 `HTTP_PROXY` / `HTTPS_PROXY` / `http_proxy` / `https_proxy`
+  避免某些 WSL/容器代理环境下 Playwright 端口探测被误判 503（finding F11）。
+- **DX** — `next.config.ts` 在 `ANALYZE=1` + Turbopack 环境下打印 warn 提示
+  用户 `next build --webpack` 才能产出 html 报告（finding F12）。
+- **DX** — `lib/ai/actions.js` 缺 API Key 错误对象带 `code: "AI_PROVIDER_MISSING_KEY"`
+  与中文文案"请在「连接设置」中配置"（finding F15）。
+  `tests/ai/actions.test.mjs` 已有测试加强：同时断言 err.code、中文文案与 api key。
+
+### Tag
+- `polish-tier-6.4`
+
 ## 2026-05-03 — Tier 6 Pass 2 / sub-tier 6.2（a11y）
 
 ### Fixed
