@@ -166,7 +166,44 @@ Import trace:
 **附加 finding**：`lib/utils.js` 用 `import "node:path"`（明确指定 node 协议）；该 URI 在 Turbopack 上无碍，但 webpack 默认不支持，导致 `next build --webpack` 失败。这是 sub-tier 6.4 候选（DX / 兼容性）。
 
 ## 2. a11y
-（Task 8 写入）
+
+### 2.1 测试范围
+- 已有 E2E（`tests/e2e/*.spec.mjs`）通过 `helpers/a11y.mjs` 的 `assertNoAxeCriticalViolations`：仅 critical 失败、serious / moderate 走 `console.warn`。
+- 本次 Pass 1 Task 8 临时创建 `tests/e2e/_audit-a11y.spec.mjs` 把 critical + serious + moderate 全部抓出来；跑完即删，**不进 commit**（已用 `git status --porcelain | grep _audit-a11y` 确认 exit=1）。
+- 扫描点：`/` 首屏初始态（`home:initial`）+ 主题 toggle 后（`home:theme-toggled`）。
+
+### 2.2 扩级结果
+
+总数：**4 条 violations**（去重后 **2 个根因**，每个根因在 2 个扫描点重复出现）。
+
+| impact | id | help | tag | nodes | sample selector |
+|--------|----|------|-----|-------|-----------------|
+| critical | `aria-allowed-attr` | Elements must only use supported ARIA attributes | `home:initial` | 2 | `header > .dropdown-container[aria-haspopup="listbox"]` |
+| critical | `aria-allowed-attr` | （同上） | `home:theme-toggled` | 2 | （同上） |
+| moderate | `page-has-heading-one` | Page should contain a level-one heading | `home:initial` | 1 | `html` |
+| moderate | `page-has-heading-one` | （同上） | `home:theme-toggled` | 1 | （同上） |
+
+### 2.3 根因初判
+
+1. **`aria-allowed-attr` × 2 nodes**：`header > .dropdown-container` 元素带 `aria-haspopup="listbox"`，但该元素的 role 或类型不支持 `aria-haspopup`。修复方向之一：
+   - 选 a：把 `.dropdown-container` 的 role 显式改为 `combobox` / `button`（这两个 role 允许 `aria-haspopup`）
+   - 选 b：把 `aria-haspopup` 移到嵌套的 `<button>` 元素上（dropdown 触发按钮才是合理位置）
+   - 选 c：删 `aria-haspopup`，改用 `aria-controls` + `aria-expanded`
+
+2. **`page-has-heading-one`**：整页没有 `<h1>`。toolbar 顶部目前用 `<header>` + 项目名等，但没有 semantic h1。修复方向：把项目名 / 应用名包成 `<h1>`（可视觉隐藏，仅给 SR 读）。
+
+### 2.4 与 §3.1 E2E fail 的关系
+
+§3.1 的 3 个 E2E fail（`dark-mode:toggle` / `dark-mode:system` / `export:menu-open`）报的也是 `aria-allowed-attr × 2 nodes`，**同一个根因**。修 §2.3 选 a/b/c 任一即可同时让 §3.1 那 3 处恢复绿。也就是说 sub-tier 6.2 修复一处可同时解决 §2.3 + §3.1.a11y。
+
+### 2.5 判定（对照设计 §2.3 阈值）
+
+- critical + serious：**2 个根因（共 4 nodes）** → 🔴 红线（目标 0 / 红线 ≥ 1）→ **sub-tier 6.2 候选 (高，预估 S 工作量)**
+- moderate：**1 个根因（共 2 occurrences，2 nodes）** → 🟢 不在红线（< 5 条无说明）；可低成本修复（添加 visually-hidden h1，~5 行 JSX + CSS）→ **sub-tier 6.2 候选 (中，S 工作量)**
+
+> **覆盖范围限制**：本次 a11y 扫只扫了 `/` 首屏 + 主题切换两个状态。模态框打开后（如 export menu）的 a11y 状态没扩级扫到 —— §3.1 通过 E2E 间接观测到 export 菜单打开后也有同样的 `aria-allowed-attr` critical（同一个 dropdown 组件），但 a11y serious / moderate 范围内的额外问题（如对话框焦点序、aria-modal 缺失）需要 sub-tier 6.2 的实施计划阶段在更多交互点上做扫描。本次 Pass 1 不深入。
+
+
 
 ## 3. 测试覆盖与缺口
 
